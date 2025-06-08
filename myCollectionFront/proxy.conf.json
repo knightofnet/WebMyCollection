@@ -1,6 +1,6 @@
 {
   "/api": {
-    "target": "http://localhost/enigmas/back",
+    "target": "http://localhost/myCollection",
     "secure": false,
     "changeOrigin": true
   }

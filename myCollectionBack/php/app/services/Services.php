@@ -9,10 +9,13 @@ class Services
     private ObjetServices $objetServices;
     private ProprietaireService $proprietaireService;
 
+    private MediaServices $mediaServices;
+
     private function __construct()
     {
         $this->objetServices = new ObjetServices();
         $this->proprietaireService = new ProprietaireService();
+        $this->mediaServices = new MediaServices();
 
 
     }
@@ -33,6 +36,11 @@ class Services
     public function getProprietaireService(): ProprietaireService
     {
         return $this->proprietaireService;
+    }
+
+    public function getMediaServices(): MediaServices
+    {
+        return $this->mediaServices;
     }
 
 

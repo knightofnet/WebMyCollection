@@ -15,18 +15,11 @@ class Objet implements IToArray
     private ?DateTime $DateAcquisition = null;
     private ?string $UrlAchat = null;
 
+    private DateTime $DateAjout ;
 
 
-    public function toArray(): array
-    {
-        return [
-            'Id_Objet'        => $this->Id_Objet,
-            'Nom'             => $this->Nom,
-            'Description'     => $this->Description,
-            'DateAcquisition' => $this->DateAcquisition ? $this->DateAcquisition->format(FormatCst::DateToBddFormat) : null,
-            'UrlAchat'        => $this->UrlAchat,
-        ];
-    }
+
+
 
     public function getIdObjet(): ?int
     {
@@ -84,6 +77,17 @@ class Objet implements IToArray
     }
 
 
+    public function toArray(): array
+    {
+        return [
+            'Id_Objet'        => $this->Id_Objet,
+            'Nom'             => $this->Nom,
+            'Description'     => $this->Description,
+            'DateAcquisition' => $this->DateAcquisition ? $this->DateAcquisition->format(FormatCst::DateToBddFormat) : null,
+            'UrlAchat'        => $this->UrlAchat,
+            'DateAjout'       => $this->DateAjout->format(FormatCst::DateToBddFormat)
+        ];
+    }
     public function hydrateObjFromRow(array $row): void
     {
         $this->Id_Objet        = isset($row['Id_Objet']) ? (int)$row['Id_Objet'] : null;
@@ -91,5 +95,6 @@ class Objet implements IToArray
         $this->Description     = $row['Description'] ?? null;
         $this->DateAcquisition = isset($row['DateAcquisition']) && $row['DateAcquisition'] !== null ? new DateTime($row['DateAcquisition']) : null;
         $this->UrlAchat        = $row['UrlAchat'] ?? null;
+        $this->DateAjout       = isset($row['DateAjout']) && $row['DateAjout'] !== null ? new DateTime($row['DateAjout']) : new DateTime();
     }
 }
