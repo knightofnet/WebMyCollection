@@ -1,0 +1,23 @@
+{
+  "name": "wolfaryx/mycollection",
+  "version": "1.0.0",
+  "description": "description",
+  "minimum-stability": "stable",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "Aryx",
+      "email": "email@example.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.4",
+    "ext-json": "*",
+    "wolfaryx/miniphprest" : "dev-main",
+    "ext-pdo": "*",
+    "phpmailer/phpmailer": "^6.6"
+  },
+  "autoload": {
+    "psr-4": {"MyCollection\\": "php/"}
+  }
+}
