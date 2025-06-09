@@ -38,14 +38,15 @@ trait ObjetTrait
 
     public function addObjet(Objet $objet): bool
     {
-        return BddUtils::executeOrderReturnIsRowCount(
-            "INSERT INTO " . Objet::TABLE . " (Nom, Description, DateAcquisition, UrlAchat) VALUES (:nom, :description, :dateAcquisition, :urlAchat)",
+        return BddUtils::executeOrderInsert(
+            "INSERT INTO " . Objet::TABLE . " (Nom, Description, DateAcquisition, UrlAchat, DateAjout) VALUES (:nom, :description, :dateAcquisition, :urlAchat, :dateAjout)",
             [
                 'nom' => $objet->getNom(),
                 'description' => $objet->getDescription(),
                 'dateAcquisition' =>  $objet->getDateAcquisition() ? $objet->getDateAcquisition()->format(FormatCst::DateToBddFormat) : null,
                 'urlAchat' => $objet->getUrlAchat(),
-            ]
+                'dateAjout' => $objet->getDateAjout() ? $objet->getDateAjout()->format(FormatCst::DateToBddFormat) : null,
+            ], $objet
         );
     }
 

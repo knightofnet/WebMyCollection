@@ -53,14 +53,14 @@ trait MediaTrait
 
     public function addMedia(Media $media): bool
     {
-        return BddUtils::executeOrderReturnIsRowCount(
+        return BddUtils::executeOrderInsert(
             "INSERT INTO " . Media::TABLE . " (Type, UriServeur, EstPrincipal, Id_Objet) VALUES (:type, :uriServeur, :estPrincipal, :idObjet)",
             [
                 'type' => $media->getType(),
                 'uriServeur' => $media->getUriServeur(),
                 'estPrincipal' => $media->isEstPrincipal(),
                 'idObjet' => $media->getIdObjet(),
-            ]
+            ], $media
         );
     }
 

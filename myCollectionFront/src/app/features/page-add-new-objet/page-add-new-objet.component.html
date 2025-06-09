@@ -1,0 +1,162 @@
+<div class="main-div page-add-new-objet container-fluid">
+
+  <div class="card shadow-sm mx-auto" style="max-width: 720px">
+    <div class="card-body">
+      <form [formGroup]="objectForm" (ngSubmit)="onSubmit()" class="needs-validation">
+
+        <!-- Nom --------------------------------------------------------->
+        <div class="mb-3">
+          <label for="name" class="form-label">
+            Nom <span class="text-danger">*</span>
+          </label>
+          <input id="name" type="text" class="form-control"
+                 placeholder="ex. Batman #1" formControlName="name" required>
+        </div>
+
+        <!-- Description ------------------------------------------------->
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label for="description" class="form-label">Description</label>
+            <textarea id="description" rows="3" class="form-control"
+                      placeholder="Ajoutez quelques détails…"
+                      formControlName="description"></textarea>
+          </div>
+          <div class="col-md-4">
+            <label for="keywords" class="form-label">Mots-clés</label>
+
+
+            <ng-select formControlName="keywords"
+                       [multiple]="true"
+                       [placeholder]="'Ajouter des mots-clés'"
+                       [addTag]="true"
+                       (add)="addNewKeyword($event)"
+            >
+              @for (cat of keywords; track cat.Id_Categorie) {
+                <ng-option [value]="cat">{{ cat.Nom }}</ng-option>
+              }
+            </ng-select>
+
+          </div>
+
+        </div>
+
+        <!-- Catégories & Propriétaires --------------------------------->
+        <div class="row g-3">
+          <!-- Catégories -->
+          <div class="col-md-6">
+            <label class="form-label">Catégories</label>
+
+            @if (categories.length === 0) {
+              <div class="alert alert-warning">
+                Aucune catégorie disponible. Veuillez en ajouter une.
+              </div>
+            }
+            <ng-select formControlName="categories"
+                       [multiple]="true"
+                       [placeholder]="'Sélectionnez une ou plusieurs catégories'">>
+              @for (cat of categories; track cat.Id_Categorie) {
+                <ng-option [value]="cat">{{ cat.Nom }}</ng-option>
+              }
+            </ng-select>
+
+
+            <button class="btn btn-link p-0 mt-1 text-decoration-none"
+                    type="button" data-bs-toggle="modal"
+                    data-bs-target="#addCategoryModal">
+
+              <!--fa-icon [icon]="faPlus" class="me-1"></fa-icon -->
+              Ajouter une catégorie
+            </button>
+          </div>
+
+          <!-- Propriétaires -->
+          <div class="col-md-6">
+            <label class="form-label">Propriétaires</label>
+
+            @if (categories.length === 0) {
+              <div class="alert alert-warning">
+                Propriétaires en cours de récupération...
+              </div>
+            } @else {
+              <ng-select formControlName="owners"
+                         [multiple]="true"
+                         [placeholder]="'Sélectionnez un ou plusieurs propriétaires'">>
+                @for (owner of owners; track owner.Id_Proprietaire) {
+                  <ng-option [value]="owner.Id_Proprietaire">{{ owner.Id_Proprietaire }}#{{ owner.Nom }}</ng-option>
+                }
+              </ng-select>
+            }
+
+
+          </div>
+        </div>
+
+        <!-- Image ------------------------------------------------------->
+        <fieldset class="mt-4">
+          <legend class="form-label mb-2">Image</legend>
+
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" id="modeUpload"
+                   value="upload" formControlName="imageMode">
+            <label class="form-check-label" for="modeUpload">Téléverser</label>
+          </div>
+
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" id="modeUrl"
+                   value="url" formControlName="imageMode">
+            <label class="form-check-label" for="modeUrl">URL externe</label>
+          </div>
+
+          @if (objectForm.controls.imageMode.value === 'upload') {
+            <input type="file" accept="image/*"
+                   class="form-control mt-2"
+                   (change)="onFileSelect($event)">
+          } @else {
+            <input type="url" placeholder="https://…"
+                   class="form-control mt-2"
+                   formControlName="imageUrl">
+          }
+
+        </fieldset>
+
+        <!-- Submit ------------------------------------------------------>
+        <div class="d-flex justify-content-end mt-4">
+          <button class="btn btn-primary"
+                  type="submit" [disabled]="objectForm.invalid">
+            <!--fa-icon [icon]="faSave" class="me-1"></fa-icon-->
+            Enregistrer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal : Ajouter une catégorie ------------------------------------>
+  <div class="modal fade" id="addCategoryModal" tabindex="-1"
+       aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" (ngSubmit)="addCategory()">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addCategoryModalLabel">Nouvelle catégorie</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"
+                  aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="newCategory" class="form-label">Nom</label>
+            <input id="newCategory" type="text" class="form-control"
+                   [(ngModel)]="newCategoryLabel" name="newCategory" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-success" type="submit">
+            <!--fa-icon [icon]="faCheck" class="me-1"></fa-icon-->
+            Ajouter
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+</div>

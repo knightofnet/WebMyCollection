@@ -76,6 +76,18 @@ class Objet implements IToArray
         return $this;
     }
 
+    public function getDateAjout(): DateTime
+    {
+        return $this->DateAjout;
+    }
+
+    public function setDateAjout(DateTime $DateAjout): Objet
+    {
+        $this->DateAjout = $DateAjout;
+        return $this;
+    }
+
+
 
     public function toArray(): array
     {
@@ -97,4 +109,11 @@ class Objet implements IToArray
         $this->UrlAchat        = $row['UrlAchat'] ?? null;
         $this->DateAjout       = isset($row['DateAjout']) && $row['DateAjout'] !== null ? new DateTime($row['DateAjout']) : new DateTime();
     }
+
+    function setIdObj(int $id): IToArray
+    {
+        return $this->setIdObjet($id);
+    }
+
+
 }

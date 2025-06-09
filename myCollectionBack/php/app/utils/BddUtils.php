@@ -31,7 +31,7 @@ class BddUtils
 
     }
 
-    public static function executeOrderReturnIsRowCount(string $sql, array $paramsCall, ?\PDO $connection = null)
+    public static function executeOrderReturnIsRowCount(string $sql, array $paramsCall, ?\PDO $connection = null) : bool
     {
         $connection = self::connectionOrSelfConnection($connection);
 
@@ -45,6 +45,26 @@ class BddUtils
         );
     }
 
+    public static function executeOrderInsert(string $sql, array $paramsCall, IToArray $obj, ?\PDO $connection = null) : bool
+    {
+        $connection = self::connectionOrSelfConnection($connection);
+
+        return BddUtils::executeOrder(
+            $connection,
+            $sql,
+            $paramsCall,
+            function (?\PDOStatement $stmt, ?\Exception $exception) use ($obj, $connection) {
+                if ($stmt && $stmt->rowCount() > 0) {
+                    $obj->setIdObj($connection->lastInsertId());
+                    return true;
+                }
+
+                return false;
+            }
+
+
+        );
+    }
 
     /**
      * @template T of IToArray

@@ -80,4 +80,9 @@ class AccesToken implements IToArray
         $this->DeviceId      = $row['DeviceId'] ?? null;
         $this->DateCreation  = isset($row['DateCreation']) && $row['DateCreation'] !== null ? new DateTime($row['DateCreation']) : new DateTime();
     }
+
+    function setIdObj(int $id): IToArray
+    {
+        return $this->setIdAccesToken($id);
+    }
 }

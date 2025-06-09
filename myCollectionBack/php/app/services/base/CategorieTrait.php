@@ -14,7 +14,7 @@ trait CategorieTrait
     {
         return BddUtils::executeOrder(
             self::getConnection(),
-            "SELECT * FROM " . Categorie::TABLE . " GROUP BY Id_Categorie ORDER BY Id_Categorie",
+            "SELECT * FROM " . Categorie::TABLE . " GROUP BY Id_Categorie ORDER BY Nom",
             [],
             function (?\PDOStatement $stmt, ?\Exception $exception) {
                 if ($exception) {
@@ -63,18 +63,15 @@ trait CategorieTrait
 
     public function addCategorie(Categorie $categorie): bool
     {
-        return BddUtils::executeOrder(
-            self::getConnection(),
-            "INSERT INTO " . Categorie::TABLE . " (Nom, StyleMainColor, StyleSecondaryColor, Id_TyCategorie) VALUES (:nom, :styleMainColor, :styleSecondaryColor, :idTyCategorie)",
+        return BddUtils::executeOrderInsert(
+            "INSERT INTO " . Categorie::TABLE . " (NomUnique, Nom, StyleMainColor, StyleSecondaryColor, Id_TyCategorie) VALUES (:nomunique, :nom, :styleMainColor, :styleSecondaryColor, :idTyCategorie)",
             [
+                'nomunique' => $categorie->getNomUnique(),
                 'nom' => $categorie->getNom(),
                 'styleMainColor' => $categorie->getStyleMainColor(),
                 'styleSecondaryColor' => $categorie->getStyleSecondaryColor(),
                 'idTyCategorie' => $categorie->getIdTyCategorie(),
-            ],
-            function (?\PDOStatement $stmt, ?\Exception $exception) {
-                return !$exception && $stmt && $stmt->rowCount() > 0;
-            }
+            ], $categorie
         );
     }
 

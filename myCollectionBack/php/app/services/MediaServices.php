@@ -10,6 +10,7 @@ class MediaServices extends AbstractServices
 
     use MediaTrait;
 
+
     public function __construct()
     {
         parent::__construct();

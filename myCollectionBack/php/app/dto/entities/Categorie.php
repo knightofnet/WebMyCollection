@@ -8,6 +8,8 @@ class Categorie implements IToArray
 {
     public const TABLE = 'Categorie';
     private ?int $Id_Categorie = null;
+
+    private string $NomUnique = '';
     private string $Nom = '';
     private ?string $StyleMainColor = null;
     private ?string $StyleSecondaryColor = null;
@@ -68,12 +70,25 @@ class Categorie implements IToArray
         return $this;
     }
 
+    public function getNomUnique(): string
+    {
+        return $this->NomUnique;
+    }
+
+    public function setNomUnique(string $NomUnique): Categorie
+    {
+        $this->NomUnique = $NomUnique;
+        return $this;
+    }
+
+
 
 
     public function toArray(): array
     {
         return [
             'Id_Categorie'        => $this->Id_Categorie,
+            'NomUnique'           => $this->NomUnique,
             'Nom'                 => $this->Nom,
             'StyleMainColor'      => $this->StyleMainColor,
             'StyleSecondaryColor' => $this->StyleSecondaryColor,
@@ -83,9 +98,15 @@ class Categorie implements IToArray
     public function hydrateObjFromRow(array $row): void
     {
         $this->Id_Categorie        = isset($row['Id_Categorie']) ? (int)$row['Id_Categorie'] : null;
+        $this->NomUnique           = $row['NomUnique'] ?? $this->NomUnique;
         $this->Nom                 = $row['Nom'] ?? $this->Nom;
         $this->StyleMainColor      = $row['StyleMainColor'] ?? null;
         $this->StyleSecondaryColor = $row['StyleSecondaryColor'] ?? null;
         $this->Id_TyCategorie      = isset($row['Id_TyCategorie']) ? (int)$row['Id_TyCategorie'] : null;
+    }
+
+    function setIdObj(int $id): IToArray
+    {
+        return $this->setIdCategorie($id);
     }
 }

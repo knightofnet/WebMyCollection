@@ -49,4 +49,15 @@ class AppUtils
 
         return $finalArray;
     }
+
+    public static function strToKebabCase(string $string, bool $isStripSpecCars = false) : string
+    {
+        if ($isStripSpecCars) {
+            $string = preg_replace('/[^a-zA-Z0-9\s]/', '', $string);
+        }
+
+        $string = strtolower(trim($string));
+        $string = preg_replace('/\s+/', '-', $string);
+        return $string;
+    }
 }

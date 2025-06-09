@@ -88,4 +88,9 @@ class Media implements IToArray
         $this->EstPrincipal = isset($row['EstPrincipal']) ? (bool)$row['EstPrincipal'] : $this->EstPrincipal;
         $this->Id_Objet     = isset($row['Id_Objet']) ? (int)$row['Id_Objet'] : $this->Id_Objet;
     }
+
+    function setIdObj(int $id): IToArray
+    {
+        return $this->setIdMedia($id);
+    }
 }

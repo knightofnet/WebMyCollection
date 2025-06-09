@@ -43,4 +43,11 @@ class TyCategorie implements IToArray
         $this->Id_TyCategorie = isset($row['Id_TyCategorie']) ? (int)$row['Id_TyCategorie'] : null;
         $this->NomCat         = $row['NomCat'] ?? $this->NomCat;
     }
+
+    function setIdObj(int $id): IToArray
+    {
+        return $this->setIdTyCategorie($id);
+    }
+
+
 }

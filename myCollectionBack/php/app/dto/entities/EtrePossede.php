@@ -10,6 +10,12 @@ class EtrePossede implements IToArray
     private int $Id_Objet = 0;
     private int $Id_Proprietaire = 0;
 
+    public function __construct(int $Id_Objet = 0, int $Id_Proprietaire = 0)
+    {
+        $this->Id_Objet = $Id_Objet;
+        $this->Id_Proprietaire = $Id_Proprietaire;
+    }
+
     public function getIdObjet(): int
     {
         return $this->Id_Objet;
@@ -42,5 +48,10 @@ class EtrePossede implements IToArray
     {
         $this->Id_Objet        = isset($row['Id_Objet']) ? (int)$row['Id_Objet'] : $this->Id_Objet;
         $this->Id_Proprietaire = isset($row['Id_Proprietaire']) ? (int)$row['Id_Proprietaire'] : $this->Id_Proprietaire;
+    }
+
+    function setIdObj(int $id): IToArray
+    {
+        return $this;
     }
 }

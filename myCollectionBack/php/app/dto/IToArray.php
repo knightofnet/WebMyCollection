@@ -12,4 +12,6 @@ interface IToArray
      * @return void
      */
     function hydrateObjFromRow(array $row);
+
+    function setIdObj(int $id): IToArray;
 }

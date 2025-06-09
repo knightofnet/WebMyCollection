@@ -75,4 +75,11 @@ class Proprietaire implements IToArray
         $this->HashCodePin     = $row['HashCodePin'] ?? $this->HashCodePin;
         $this->Email           = $row['Email'] ?? null;
     }
+
+    function setIdObj(int $id): IToArray
+    {
+        return $this->setIdProprietaire($id);
+    }
+
+
 }

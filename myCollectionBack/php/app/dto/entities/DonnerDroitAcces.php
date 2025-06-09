@@ -108,4 +108,9 @@ class DonnerDroitAcces implements IToArray
         $this->DateFin         = isset($row['DateFin']) && $row['DateFin'] !== null ? new DateTime($row['DateFin']) : null;
         $this->NiveauDetail    = isset($row['NiveauDetail']) ? (int)$row['NiveauDetail'] : $this->NiveauDetail;
     }
+
+    function setIdObj(int $id): IToArray
+    {
+        return $this;
+    }
 }

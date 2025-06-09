@@ -10,6 +10,12 @@ class AvoirCategorie implements IToArray
     private int $Id_Objet = 0;
     private int $Id_Categorie = 0;
 
+    public function __construct(int $Id_Objet = 0, int $Id_Categorie = 0)
+    {
+        $this->Id_Objet = $Id_Objet;
+        $this->Id_Categorie = $Id_Categorie;
+    }
+
     public function getIdObjet(): int
     {
         return $this->Id_Objet;
@@ -42,5 +48,10 @@ class AvoirCategorie implements IToArray
     {
         $this->Id_Objet     = isset($row['Id_Objet']) ? (int)$row['Id_Objet'] : $this->Id_Objet;
         $this->Id_Categorie = isset($row['Id_Categorie']) ? (int)$row['Id_Categorie'] : $this->Id_Categorie;
+    }
+
+    function setIdObj(int $id): IToArray
+    {
+        return $this;
     }
 }

@@ -2,21 +2,32 @@
 
 namespace MyCollection\app\controllers;
 
+
 use MiniPhpRest\core\AbstractController;
 use MiniPhpRest\core\ResponseObject;
 use MiniPhpRest\core\utils\ResponseUtils;
+use MyCollection\app\cst\FormatCst;
+use MyCollection\app\dto\entities\AvoirCategorie;
+use MyCollection\app\dto\entities\Categorie;
+use MyCollection\app\dto\entities\EtrePossede;
 use MyCollection\app\dto\entities\Media;
+use MyCollection\app\dto\entities\Objet;
 use MyCollection\app\dto\entities\Proprietaire;
+use MyCollection\app\services\CategorieServices;
 use MyCollection\app\services\MediaServices;
 use MyCollection\app\services\ObjetServices;
 use MyCollection\app\services\ProprietaireService;
 use MyCollection\app\services\Services;
 use MyCollection\app\utils\AppUtils;
+use MyCollection\app\utils\BddUtils;
+use MyCollection\app\utils\ValidatorsUtils;
 
 class ObjetController extends AbstractController
 {
     private ObjetServices $objetServices;
-    private ProprietaireService  $proprietaireService;
+    private ProprietaireService $proprietaireService;
+
+    private CategorieServices $categorieServices;
 
     private MediaServices $mediaServices;
 
@@ -25,10 +36,12 @@ class ObjetController extends AbstractController
         $this->objetServices = Services::instance()->getObjetServices();
         $this->proprietaireService = Services::instance()->getProprietaireService();
         $this->mediaServices = Services::instance()->getMediaServices();
+        $this->categorieServices = Services::instance()->getCategorieServices();
     }
 
     /** @noinspection PhpUnused */
-    public function getAllByUserId(int $userId): ResponseObject {
+    public function getAllByUserId(int $userId): ResponseObject
+    {
 
         $objets = $this->objetServices->getObjetsByIdProprietaire($userId);
 
@@ -38,21 +51,298 @@ class ObjetController extends AbstractController
         foreach ($objetsArray as &$objet) {
             $idObjet = $objet['Id_Objet'];
 
-
+            // On ajoute les proprietaires
             $objet[Proprietaire::TABLE] = $this->proprietaireService->getProprietairesByIdObjet($idObjet);
             $toFilterKey = array_merge($toFilterKey, ['HashCodePin', 'Email']);
 
+            // On ajoute les medias
             $objet[Media::TABLE] = $this->mediaServices->getMediaByIdObjet($idObjet);
+
+            // On ajoute les categories
+            $objet[Categorie::TABLE] = $this->objetServices->getCategoriesByIdObjet($idObjet);
+
         }
 
         $retArray = ResponseUtils::getDefaultResponseArray(true);
         $retArray['content']['data'] = $objetsArray;
         $retArray['content']['type'] = 'Objet[]';
 
-        return ResponseObject::ResultsObjectToJson(AppUtils::toArrayIToArray($retArray, $toFilterKey) );
+        return ResponseObject::ResultsObjectToJson(AppUtils::toArrayIToArray($retArray, $toFilterKey));
 
 
     }
 
+    public function addNewObjet(): ResponseObject
+    {
+
+        $retArray = ResponseUtils::getDefaultResponseArray(false);
+        $datas = json_decode($_POST['data'], JSON_OBJECT_AS_ARRAY);
+        $filepathOnServer = null;
+
+        try {
+            BddUtils::initTransaction();
+
+
+            $datas = $this->validateDatasAddNewObjet($datas);
+
+            $nomRaw = $datas['nom'];
+            $descriptionRaw = $datas['description'];
+            $idsPropsRaw = $datas['idProprietaire'];
+            $categoriesRaw = $datas['categories'];
+            $keywordsRaw = $datas['keywords'];
+            $imageModeRaw = $datas['imageMode'];
+
+
+            // verifs
+
+            $newObj = new Objet();
+            $newObj->setNom($nomRaw);
+            $newObj->setDescription($descriptionRaw);
+            $newObj->setDateAjout(new \DateTime('now'));
+
+            if (!$this->objetServices->addObjet($newObj)) {
+                throw new \Exception('Erreur lors de l\'ajout de l\'objet.');
+            }
+
+            // On ajoute les proprietaires
+            foreach ($idsPropsRaw as $idProp) {
+                if (!$this->objetServices->addEtrePossede(new EtrePossede($newObj->getIdObjet(), $idProp))) {
+                    throw new \Exception('Erreur lors de l\'ajout du proprietaire à l\'objet.');
+                }
+            }
+
+            // On ajoute les categories
+            if (!empty($categoriesRaw) && is_array($categoriesRaw)) {
+                foreach ($categoriesRaw as $dataCategorie) {
+                    $this->addOrLinkCategorie($dataCategorie, $newObj);
+                }
+            }
+
+            // On ajoute les mots-clés
+            if (!empty($keywordsRaw) && is_array($keywordsRaw)) {
+                foreach ($keywordsRaw as $dataCategorie) {
+                    $this->addOrLinkCategorie($dataCategorie, $newObj);
+                }
+            }
+
+            // On ajoute les medias
+            if ($imageModeRaw === 'upload') {
+                $mediaType = FormatCst::MediaTypeImage;
+                $file = $_FILES['file'];
+                if (empty($file) || !isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) {
+                    throw new \Exception('Le fichier n\'a pas été uploadé correctement.');
+                }
+                $authMimeType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                if (!in_array($file['type'], $authMimeType, true)) {
+                    throw new \Exception('Le type de fichier n\'est pas autorisé. Types autorisés : ' . implode(', ', $authMimeType));
+                }
+
+                global $siteConf;
+                $filepathOnServer = SERVER_ROOT . '/' . $siteConf->getValue('upload', 'folder') . '/' . $file['name'];
+                $relativePath = $siteConf->getValue('upload', 'folder') . '/' . $file['name'];
+                if (!move_uploaded_file($file['tmp_name'], $filepathOnServer)) {
+                    throw new \Exception('Erreur lors de l\'enregistrement du fichier.');
+                }
+
+                $media = new Media();
+                $media->setIdObjet($newObj->getIdObjet());
+                $media->setType($mediaType);
+                $media->setUriServeur($relativePath);
+                $media->setEstPrincipal(true); // On peut définir le premier média comme principal
+                if (!$this->mediaServices->addMedia($media)) {
+                    throw new \Exception('Erreur lors de l\'ajout du média à l\'objet.');
+                }
+
+            }
+            elseif ($imageModeRaw === 'url') {
+                $mediaType = FormatCst::MediaTypeDirectLinkImg;
+
+                $media = new Media();
+                $media->setIdObjet($newObj->getIdObjet());
+                $media->setType($mediaType);
+                $media->setUriServeur($datas['imageUrl']);
+                $media->setEstPrincipal(true); // On peut définir le premier média comme principal
+
+                if (!$this->mediaServices->addMedia($media)) {
+                    throw new \Exception('Erreur lors de l\'ajout du média à l\'objet.');
+                }
+            }
+
+
+            BddUtils::commitTransaction();
+            $retArray['result'] = true;
+            return ResponseObject::ResultsObjectToJson(AppUtils::toArrayIToArray($retArray));
+
+        } catch (\Exception $e) {
+
+            BddUtils::rollbackTransaction();
+            if (isset($filepathOnServer) && file_exists($filepathOnServer)) {
+                unlink($filepathOnServer); // Supprimer le fichier si l'upload a échoué
+            }
+
+            $retArray['content']['message'] = 'Erreur lors de l\'ajout de l\'objet : ' . $e->getMessage();
+            return ResponseObject::ResultsObjectToJson($retArray);
+        }
+
+
+    }
+
+    private function validateDatasAddNewObjet(array $datas): array
+    {
+
+
+        ValidatorsUtils::allExistsInArray(['nom', 'description', 'idProprietaire'], $datas, true,
+            'Les champs nom, description et idProprietaire sont obligatoires.');
+
+
+        // Validation du nom
+        $datas['nom'] = trim(htmlspecialchars($datas['nom']));
+        ValidatorsUtils::isNotEmptyString($datas['nom'], true, 'Le nom de l\'objet ne peut pas être vide.');
+        ValidatorsUtils::isStringLengthLessThan($datas['nom'], 255, true, 'Le nom de l\'objet ne peut pas dépasser 255 caractères.');
+
+
+        // Validation de la description
+        $datas['description'] = trim(htmlspecialchars($datas['description']));
+
+
+        // Vérification des proprietaires
+        $proprietaires = $datas['idProprietaire'];
+        if (!is_array($proprietaires) || empty($proprietaires)) {
+            throw new \Exception('Le champ idProprietaire doit être un tableau non vide.');
+        }
+
+        $cleanedProprietaires = [];
+        foreach ($proprietaires as $idProp) {
+            ValidatorsUtils::isValidInt($idProp, 1, null, true, 'L\'id du proprietaire doit être un entier positif.');
+            $proprietaireObj = $this->proprietaireService->getProprietaireById($idProp);
+            if (empty($proprietaireObj)) {
+                throw new \Exception('Le proprietaire avec l\'id ' . $idProp . ' n\'existe pas.');
+            }
+
+            $cleanedProprietaires[] = $idProp;
+        }
+        $datas['idProprietaire'] = $cleanedProprietaires;
+
+
+        // Validation du mode d'image
+        $imageMode = $datas['imageMode'] ?? '';
+        $validImageModes = ['upload', 'url', 'none'];
+        if (!in_array($imageMode, $validImageModes, true)) {
+            throw new \Exception('Le mode d\'image doit être "upload" ou "url".');
+        }
+        if ($imageMode === 'upload' && empty($_FILES) && !isset($_FILES['file'])) {
+            throw new \Exception('Le mode d\'image "upload" nécessite un fichier image.');
+        }
+        if ($imageMode === 'url') {
+            if (empty($datas['imageUrl'])) {
+                $datas['imageMode'] = 'none'; // Si aucune URL n'est fournie, on passe en mode "none"
+            } else {
+                $datas['imageUrl'] = trim(htmlspecialchars($datas['imageUrl']));
+                ValidatorsUtils::uriIsValidAndRespond(
+                    $datas['imageUrl'],
+                    true,
+                    'L\'URL de l\'image n\'est pas valide.'
+                );
+            }
+        }
+
+        // Validation des catégories
+        if (isset($datas['categories']) && is_array($datas['categories'])) {
+            foreach ($datas['categories'] as &$dataCategorie) {
+                $this->validateDatasCategorie($dataCategorie);
+
+            }
+        } else {
+            $datas['categories'] = [];
+        }
+
+        // Validation des mots-clés
+        if (isset($datas['keywords']) && is_array($datas['keywords'])) {
+            foreach ($datas['keywords'] as &$dataCategorie) {
+                $this->validateDatasCategorie($dataCategorie);
+
+            }
+        } else {
+            $datas['keywords'] = [];
+        }
+
+        return $datas;
+    }
+
+    /**
+     * @param $dataCategorie
+     * @param Objet $newObj
+     * @return void
+     * @throws \Exception
+     */
+    public
+    function addOrLinkCategorie($dataCategorie, Objet $newObj): void
+    {
+
+        // verifions
+        $idCat =$dataCategorie['Id_Categorie'];
+
+        $nomUnique = htmlspecialchars($dataCategorie['Nom']);
+        $nomUnique = AppUtils::strToKebabCase($nomUnique, true);
+
+
+        /** @var Categorie $categorieObj */
+        $categorieObj = null;
+        if ($idCat <= 0) {
+
+            $idTyCat = $dataCategorie['Id_TyCategorie'];
+
+            if ($cat = $this->categorieServices->getCategorieByNomUniqueAndType($nomUnique, $idTyCat)) {
+                $categorieObj = $cat;
+            }
+
+        } else {
+            $categorieObj = $this->categorieServices->getCategorieById($idCat);
+        }
+
+        if (empty($categorieObj)) {
+            $categorieObj = new Categorie();
+            $categorieObj->setNom($dataCategorie['Nom']);
+            $categorieObj->setNomUnique($nomUnique);
+            $categorieObj->setIdTyCategorie($dataCategorie['Id_TyCategorie']);
+            if (!$this->categorieServices->addCategorie($categorieObj)) {
+                throw new \Exception('Erreur lors de l\'ajout de la catégorie.');
+            }
+        }
+
+        if (!$this->categorieServices->addAvoirCategorie(new AvoirCategorie(
+            $newObj->getIdObjet(),
+            $categorieObj->getIdCategorie()
+        ))) {
+            throw new \Exception('Erreur lors de l\'ajout de la catégorie à l\'objet.');
+        }
+    }
+
+    /**
+     * @param $dataCategorie
+     * @return void
+     */
+    public function validateDatasCategorie(array &$dataCategorie): void
+    {
+        ValidatorsUtils::allExistsInArray(['Id_Categorie', 'Nom'], $dataCategorie, true,
+            'Chaque catégorie doit contenir les champs Id_Categorie et Nom.');
+
+        ValidatorsUtils::isValidInt($dataCategorie['Id_Categorie'], null, null, true,
+            'L\'id de la catégorie doit être un entier.');
+
+        $idCategorie = intval($dataCategorie['Id_Categorie']);
+        $dataCategorie['Id_Categorie'] = $idCategorie;
+        $dataCategorie['Nom'] = trim(htmlspecialchars($dataCategorie['Nom']));
+
+        if ($idCategorie <= 0) {
+            ValidatorsUtils::allExistsInArray(['Id_TyCategorie'], $dataCategorie, true,
+                'Pour une nouvelle catégorie, le champ Id_TyCategorie est obligatoire.');
+
+            ValidatorsUtils::isValidInt($dataCategorie['Id_TyCategorie'], 1, 2, true,
+                'Le type de catégorie doit être un entier compris entre 1 et 2.');
+
+            $dataCategorie['Id_TyCategorie'] = intval($dataCategorie['Id_TyCategorie']);
+        }
+    }
 
 }

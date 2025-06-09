@@ -1,5 +1,6 @@
 import {IProprietaire} from './i-proprietaire';
 import {IMedia} from './i-media';
+import {ICategorie} from './i-categorie';
 
 export interface IObjet {
   Id_Objet: number
@@ -10,6 +11,7 @@ export interface IObjet {
   DateAjout : Date | null,
   Proprietaire: IProprietaire[]
   Media? : IMedia[] | null
+  Categorie? : ICategorie[] | null
 
 
 }
