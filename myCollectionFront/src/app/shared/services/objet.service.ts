@@ -4,6 +4,9 @@ import { IObjet } from '../interfaces/i-objet';
 import {IGenResponse} from '../../core/interfaces/i-genresponse';
 import {Observable} from 'rxjs';
 import {ICategorie} from '../interfaces/i-categorie';
+import {IParamForCreateOrUpdateObjet} from '../interfaces/side/i-param-for-create-or-update-objet';
+
+
 
 
 @Injectable({
@@ -21,16 +24,7 @@ export class ObjetService {
     return this.httpClient.get<IGenResponse<IObjet[]>>(`/api/v1/objet/getAll/${idProprietaire}`);
   }
 
-  addNewObjet(param: {
-    nom: string | null | undefined;
-    description: string | null | undefined;
-    categories: ICategorie[] | null | undefined;
-    keywords: ICategorie[] | null | undefined;
-    idProprietaire: number[] | null | undefined;
-    imageMode: string | null | undefined;
-    imageFile: File | null | undefined;
-    imageUrl: string | null | undefined
-  }): Observable<IGenResponse<boolean>> {
+  addNewObjet(param: IParamForCreateOrUpdateObjet): Observable<IGenResponse<boolean>> {
 
     console.log('Param', param);
 
@@ -46,5 +40,17 @@ export class ObjetService {
 
     return this.httpClient.post<IGenResponse<boolean>>('/api/v1/objet/addNewObjet', formData);
 
+  }
+
+  getObjetById(idObjet: number) : Observable<IGenResponse<IObjet>> {
+    return this.httpClient.get<IGenResponse<IObjet>>(`/api/v1/objet/getById/${idObjet}`);
+  }
+
+  updateObjet(idObjet: number, params: IParamForCreateOrUpdateObjet) : Observable<IGenResponse<boolean>> {
+    const data = {
+      idObjet: idObjet,
+      data : params
+    };
+    return this.httpClient.put<IGenResponse<boolean>>('/api/v1/objet/updateObjet', data);
   }
 }

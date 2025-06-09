@@ -57,9 +57,9 @@
                 <p class="card-text">{{ objet.Description || '...' }}</p>
                 <div class="d-flex justify-content-between align-items-center">
                   <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-outline-secondary">View</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary">Voir</button>
                     @if (isUserProprietaire(objet)) {
-                      <button type="button" class="btn btn-sm btn-outline-secondary">Edit</button>
+                      <a type="button" [routerLink]="['/editOne', objet.Id_Objet]"  class="btn btn-sm btn-outline-secondary">Modifier</a>
                     }
 
                   </div>

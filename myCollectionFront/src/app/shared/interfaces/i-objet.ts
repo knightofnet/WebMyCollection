@@ -12,6 +12,7 @@ export interface IObjet {
   Proprietaire: IProprietaire[]
   Media? : IMedia[] | null
   Categorie? : ICategorie[] | null
+  Keyword? : ICategorie[] | null
 
 
 }

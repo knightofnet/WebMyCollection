@@ -12,6 +12,10 @@ export const routes: Routes = [
     component : PageAddNewObjetComponent
   },
   {
+    path : 'editOne/:id',
+    component : PageAddNewObjetComponent
+  },
+  {
     path : '**',
     redirectTo: 'list',
   }

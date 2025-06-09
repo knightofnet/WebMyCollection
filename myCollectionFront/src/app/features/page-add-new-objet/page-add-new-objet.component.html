@@ -28,12 +28,12 @@
             <ng-select formControlName="keywords"
                        [multiple]="true"
                        [placeholder]="'Ajouter des mots-clés'"
+                       [items]="keywords"
+                       bindValue="Id_Categorie"
+                       bindLabel="Nom"
                        [addTag]="true"
                        (add)="addNewKeyword($event)"
             >
-              @for (cat of keywords; track cat.Id_Categorie) {
-                <ng-option [value]="cat">{{ cat.Nom }}</ng-option>
-              }
             </ng-select>
 
           </div>
@@ -53,10 +53,13 @@
             }
             <ng-select formControlName="categories"
                        [multiple]="true"
-                       [placeholder]="'Sélectionnez une ou plusieurs catégories'">>
-              @for (cat of categories; track cat.Id_Categorie) {
-                <ng-option [value]="cat">{{ cat.Nom }}</ng-option>
-              }
+                       [placeholder]="'Sélectionnez une ou plusieurs catégories'"
+                       [items]="categories"
+                       bindValue="Id_Categorie"
+                       bindLabel="Nom"
+
+            >
+
             </ng-select>
 
 
@@ -91,9 +94,31 @@
           </div>
         </div>
 
+        @if (currentObjetEdited) {
+          <fieldset class="mt-4">
+            <legend class="form-label mb-2">Images associées à l'objet</legend>
+
+            @for (media of currentObjetEdited.Media; track media.Id_Media) {
+              <div class="mb-2">
+                <img [src]="media.UriServeur"
+                     alt="#{{ media.Id_Media }}"
+                     class="img-thumbnail me-2"
+                     style="max-width: 100px; max-height: 100px;">
+                <button type="button" class="btn btn-danger btn-sm"
+                        (click)="removeMedia(media.Id_Media)"
+                >
+                  <!--fa-icon [icon]="faTrash" class="me-1"></fa-icon-->
+                  Supprimer
+                </button>
+              </div>
+            }
+
+          </fieldset>
+        }
+
         <!-- Image ------------------------------------------------------->
         <fieldset class="mt-4">
-          <legend class="form-label mb-2">Image</legend>
+          <legend class="form-label mb-2">Ajouter une image</legend>
 
           <div class="form-check form-check-inline">
             <input class="form-check-input" type="radio" id="modeUpload"
@@ -108,9 +133,32 @@
           </div>
 
           @if (objectForm.controls.imageMode.value === 'upload') {
-            <input type="file" accept="image/*"
-                   class="form-control mt-2"
+            <input #inputFile type="file" accept="image/*"
+                   class="form-control mt-2 mb-3"
                    (change)="onFileSelect($event)">
+
+
+            <div class="rounded border border-primary p-4 text-center mb-3"
+                 (dragover)="onFileDragOver($event)"
+                 (dragleave)="onFileDragLeave($event)"
+                 (drop)="onFileDrop($event)"
+                 (click)="inputFile.click()"
+                 [class.bg-light]="isDragOver">
+
+              @if (pendingUploads.length == 0) {
+                Glissez-déposez une image ici ou cliquez pour sélectionner un fichier.
+              } @else {
+                <div class="alert alert-info">
+                  <strong>Fichier sélectionné :</strong>
+                  <ul class="list-unstyled mb-0">
+                    @for (file of pendingUploads; track file.name) {
+                      <li>{{ file.name }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+            </div>
+
           } @else {
             <input type="url" placeholder="https://…"
                    class="form-control mt-2"

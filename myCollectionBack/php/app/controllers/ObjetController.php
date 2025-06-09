@@ -7,6 +7,7 @@ use MiniPhpRest\core\AbstractController;
 use MiniPhpRest\core\ResponseObject;
 use MiniPhpRest\core\utils\ResponseUtils;
 use MyCollection\app\cst\FormatCst;
+use MyCollection\app\cst\TypeCategorieCst;
 use MyCollection\app\dto\entities\AvoirCategorie;
 use MyCollection\app\dto\entities\Categorie;
 use MyCollection\app\dto\entities\EtrePossede;
@@ -20,6 +21,7 @@ use MyCollection\app\services\ProprietaireService;
 use MyCollection\app\services\Services;
 use MyCollection\app\utils\AppUtils;
 use MyCollection\app\utils\BddUtils;
+use MyCollection\app\utils\lang\ArrayUtils;
 use MyCollection\app\utils\ValidatorsUtils;
 
 class ObjetController extends AbstractController
@@ -49,23 +51,77 @@ class ObjetController extends AbstractController
         $toFilterKey = [];
 
         foreach ($objetsArray as &$objet) {
-            $idObjet = $objet['Id_Objet'];
-
-            // On ajoute les proprietaires
-            $objet[Proprietaire::TABLE] = $this->proprietaireService->getProprietairesByIdObjet($idObjet);
-            $toFilterKey = array_merge($toFilterKey, ['HashCodePin', 'Email']);
-
-            // On ajoute les medias
-            $objet[Media::TABLE] = $this->mediaServices->getMediaByIdObjet($idObjet);
-
-            // On ajoute les categories
-            $objet[Categorie::TABLE] = $this->objetServices->getCategoriesByIdObjet($idObjet);
+            list($objet, $toFilterKey) = $this->fillFullObjet($objet, $toFilterKey);
 
         }
 
         $retArray = ResponseUtils::getDefaultResponseArray(true);
         $retArray['content']['data'] = $objetsArray;
         $retArray['content']['type'] = 'Objet[]';
+
+        return ResponseObject::ResultsObjectToJson(AppUtils::toArrayIToArray($retArray, $toFilterKey));
+
+
+    }
+
+    /**
+     * @param $objet
+     * @param $toFilterKey
+     * @return array
+     * @throws \Exception
+     */
+    public function fillFullObjet($objet, $inputToFilterKey): array
+    {
+        if ($objet instanceof Objet) {
+            $objet = AppUtils::toArrayIToArray($objet->toArray());
+        }
+
+        $idObjet = $objet['Id_Objet'];
+
+        // On ajoute les proprietaires
+        $objet[Proprietaire::TABLE] = $this->proprietaireService->getProprietairesByIdObjet($idObjet);
+        $toFilterKey = array_merge($inputToFilterKey, ['HashCodePin', 'Email']);
+
+        // On ajoute les medias
+        $objet[Media::TABLE] = $this->mediaServices->getMediaByIdObjet($idObjet);
+
+        // On ajoute les categories
+        $allCatsOfObjet = $this->objetServices->getCategoriesByIdObjet($idObjet);
+        $objet[Categorie::TABLE] = ArrayUtils::find(
+            fn($cat) => $cat->getIdTyCategorie() !== TypeCategorieCst::IdTyCatKeyword, $allCatsOfObjet
+        );
+
+        // On ajoute les mots-clés
+        $objet[TypeCategorieCst::ObjetPropKeywords] = ArrayUtils::find(
+            fn($cat) => $cat->getIdTyCategorie() === TypeCategorieCst::IdTyCatKeyword, $allCatsOfObjet
+        );
+
+        return array($objet, $toFilterKey);
+    }
+
+    /** @noinspection PhpUnused */
+    public function getObjetById(int $objetId): ResponseObject
+    {
+
+        // Todo vérifier userid (session ?)
+
+        $retArray = ResponseUtils::getDefaultResponseArray();
+
+        $toFilterKey = [];
+
+        $objet = $this->objetServices->getObjetById($objetId);
+        if (empty($objet)) {
+            $retArray['result'] = false;
+            $retArray['error']['msg'] = 'L\'objet avec l\'id ' . $objetId . ' n\'existe pas.';
+        } else {
+
+
+            list($objet, $toFilterKey) = $this->fillFullObjet($objet, $toFilterKey);
+            $retArray['result'] = true;
+            $retArray['content']['data'] = $objet;
+            $retArray['content']['type'] = 'Objet';
+
+        }
 
         return ResponseObject::ResultsObjectToJson(AppUtils::toArrayIToArray($retArray, $toFilterKey));
 
@@ -153,8 +209,7 @@ class ObjetController extends AbstractController
                     throw new \Exception('Erreur lors de l\'ajout du média à l\'objet.');
                 }
 
-            }
-            elseif ($imageModeRaw === 'url') {
+            } elseif ($imageModeRaw === 'url') {
                 $mediaType = FormatCst::MediaTypeDirectLinkImg;
 
                 $media = new Media();
@@ -271,6 +326,33 @@ class ObjetController extends AbstractController
 
     /**
      * @param $dataCategorie
+     * @return void
+     */
+    public function validateDatasCategorie(array &$dataCategorie): void
+    {
+        ValidatorsUtils::allExistsInArray(['Id_Categorie', 'Nom'], $dataCategorie, true,
+            'Chaque catégorie doit contenir les champs Id_Categorie et Nom.');
+
+        ValidatorsUtils::isValidInt($dataCategorie['Id_Categorie'], null, null, true,
+            'L\'id de la catégorie doit être un entier.');
+
+        $idCategorie = intval($dataCategorie['Id_Categorie']);
+        $dataCategorie['Id_Categorie'] = $idCategorie;
+        $dataCategorie['Nom'] = trim(htmlspecialchars($dataCategorie['Nom']));
+
+        if ($idCategorie <= 0) {
+            ValidatorsUtils::allExistsInArray(['Id_TyCategorie'], $dataCategorie, true,
+                'Pour une nouvelle catégorie, le champ Id_TyCategorie est obligatoire.');
+
+            ValidatorsUtils::isValidInt($dataCategorie['Id_TyCategorie'], 1, 2, true,
+                'Le type de catégorie doit être un entier compris entre 1 et 2.');
+
+            $dataCategorie['Id_TyCategorie'] = intval($dataCategorie['Id_TyCategorie']);
+        }
+    }
+
+    /**
+     * @param $dataCategorie
      * @param Objet $newObj
      * @return void
      * @throws \Exception
@@ -280,7 +362,7 @@ class ObjetController extends AbstractController
     {
 
         // verifions
-        $idCat =$dataCategorie['Id_Categorie'];
+        $idCat = $dataCategorie['Id_Categorie'];
 
         $nomUnique = htmlspecialchars($dataCategorie['Nom']);
         $nomUnique = AppUtils::strToKebabCase($nomUnique, true);
@@ -315,33 +397,6 @@ class ObjetController extends AbstractController
             $categorieObj->getIdCategorie()
         ))) {
             throw new \Exception('Erreur lors de l\'ajout de la catégorie à l\'objet.');
-        }
-    }
-
-    /**
-     * @param $dataCategorie
-     * @return void
-     */
-    public function validateDatasCategorie(array &$dataCategorie): void
-    {
-        ValidatorsUtils::allExistsInArray(['Id_Categorie', 'Nom'], $dataCategorie, true,
-            'Chaque catégorie doit contenir les champs Id_Categorie et Nom.');
-
-        ValidatorsUtils::isValidInt($dataCategorie['Id_Categorie'], null, null, true,
-            'L\'id de la catégorie doit être un entier.');
-
-        $idCategorie = intval($dataCategorie['Id_Categorie']);
-        $dataCategorie['Id_Categorie'] = $idCategorie;
-        $dataCategorie['Nom'] = trim(htmlspecialchars($dataCategorie['Nom']));
-
-        if ($idCategorie <= 0) {
-            ValidatorsUtils::allExistsInArray(['Id_TyCategorie'], $dataCategorie, true,
-                'Pour une nouvelle catégorie, le champ Id_TyCategorie est obligatoire.');
-
-            ValidatorsUtils::isValidInt($dataCategorie['Id_TyCategorie'], 1, 2, true,
-                'Le type de catégorie doit être un entier compris entre 1 et 2.');
-
-            $dataCategorie['Id_TyCategorie'] = intval($dataCategorie['Id_TyCategorie']);
         }
     }
 
