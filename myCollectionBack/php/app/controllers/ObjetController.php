@@ -196,6 +196,37 @@ class ObjetController extends AbstractController implements IObjetController
             }
 
 
+            // On met à jour les mots-clés
+            // ----
+
+            $keywordsRaw = $datas['keywords'];
+            $currentKeywords = $objetExistingArray[TypeCategorieCst::ObjetPropKeywords];
+
+            $currentKeywordsIds = array_map(
+                fn($cat) => $cat->getIdCategorie(),
+                $currentKeywords
+            );
+            $keywordsRawId = array_map(
+                fn($cat) => $cat['Id_Categorie'],
+                $keywordsRaw
+            );
+
+            $diffNotNeeded = ArrayUtils::diff($currentKeywordsIds, $keywordsRawId);
+            foreach ($diffNotNeeded as $idCat) {
+                if (!$this->categorieServices->deleteAvoirCategorieByIdObjet($objetExisting->getIdObjet(), $idCat)) {
+                    throw new \Exception('Erreur lors de la suppression du mot-clé avec l\'id ' . $idCat . ' de l\'objet.');
+                }
+            }
+            $diffIsNew = ArrayUtils::diff($keywordsRawId, $currentKeywordsIds);
+            foreach ($diffIsNew as $idCat) {
+                $newCat = ArrayUtils::findOne( fn($nCat) => $nCat['Id_Categorie'] == $idCat , $keywordsRaw);
+                if (empty($newCat)) {
+                    throw new \Exception('Le mot-clé avec l\'id ' . $idCat . ' n\'existe pas dans les données fournies.');
+                }
+                $this->addOrLinkCategorie($newCat, $objetExisting);
+            }
+
+
             BddUtils::commitTransaction();
             $retArray['result'] = true;
             $retArray['content']['data'] = true;
