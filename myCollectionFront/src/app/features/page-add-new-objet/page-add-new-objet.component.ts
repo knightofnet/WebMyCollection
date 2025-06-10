@@ -94,33 +94,7 @@ export class PageAddNewObjetComponent implements OnInit {
         }
 
         if (id) {
-          this.objetServices.getObjetById(+id).subscribe({
-            next: (response) => {
-              if (response.result) {
-
-                // Pré-remplir le formulaire avec les données de l'objet récupéré
-                const objet = response.content.data;
-
-                this.currentObjetEdited = objet;
-
-                this.objectForm.patchValue({
-                  name: objet.Nom,
-                  description: objet.Description,
-                  categories: objet.Categorie?.map(cat => cat.Id_Categorie),
-                  keywords: objet.Keyword?.map(cat => cat.Id_Categorie),
-                  owners: objet.Proprietaire.map(owner => owner.Id_Proprietaire),
-                  //imageMode: objet ? 'url' : 'upload',
-                  //imageUrl: objet.imageUrl || '',
-                  //imageFile: null
-                });
-              } else {
-                console.error('Failed to fetch objet:', response.error);
-              }
-            },
-            error: (error) => {
-              console.error('Error fetching objet:', error);
-            }
-          });
+          this.asyncGetObjetFromRemote(id);
         }
       },
       error: (error) => {
@@ -129,6 +103,36 @@ export class PageAddNewObjetComponent implements OnInit {
     });
   }
 
+
+  private asyncGetObjetFromRemote = (id: string) => {
+    this.objetServices.getObjetById(+id).subscribe({
+      next: (response) => {
+        if (response.result) {
+
+          // Pré-remplir le formulaire avec les données de l'objet récupéré
+          const objet = response.content.data;
+
+          this.currentObjetEdited = objet;
+
+          this.objectForm.patchValue({
+            name: objet.Nom,
+            description: objet.Description,
+            categories: objet.Categorie?.map(cat => cat.Id_Categorie),
+            keywords: objet.Keyword?.map(cat => cat.Id_Categorie),
+            owners: objet.Proprietaire.map(owner => owner.Id_Proprietaire),
+            //imageMode: objet ? 'url' : 'upload',
+            //imageUrl: objet.imageUrl || '',
+            //imageFile: null
+          });
+        } else {
+          console.error('Failed to fetch objet:', response.error);
+        }
+      },
+      error: (error) => {
+        console.error('Error fetching objet:', error);
+      }
+    });
+  }
 
   onFileSelect(evt: Event): void {
     const file = (evt.target as HTMLInputElement).files?.[0] ?? null;
@@ -235,7 +239,7 @@ export class PageAddNewObjetComponent implements OnInit {
     console.log("KWD:", keywords);
     console.log("CAT:", categories);
 
-    const uploadProps : IParamForCreateOrUpdateObjet = {
+    const uploadProps: IParamForCreateOrUpdateObjet = {
       nom: payload.name,
       description: payload.description,
       categories: categories,
@@ -250,10 +254,21 @@ export class PageAddNewObjetComponent implements OnInit {
     console.log('Submitting objet with payload:', uploadProps);
 
     let subscribeAddOrUpdate$ = null;
+    let afterSubmit = () => {
+    };
     if (this.currentObjetEdited) {
       subscribeAddOrUpdate$ = this.objetServices.updateObjet(this.currentObjetEdited.Id_Objet, uploadProps);
+      afterSubmit = () => {
+        this.asyncGetObjetFromRemote(this.currentObjetEdited!.Id_Objet.toString());
+      }
     } else {
       subscribeAddOrUpdate$ = this.objetServices.addNewObjet(uploadProps);
+      afterSubmit = () => {
+        this.objectForm.reset({
+          imageMode: 'upload',
+          owners: [this.owners[0].Id_Proprietaire],
+        });
+      }
     }
 
     if (subscribeAddOrUpdate$) {
@@ -262,10 +277,7 @@ export class PageAddNewObjetComponent implements OnInit {
           if (response.result) {
             console.log('Objet added successfully:', response.content);
             // Reset the form after successful submission
-            this.objectForm.reset({
-              imageMode: 'upload',
-              owners: [this.owners[0].Id_Proprietaire],
-            });
+            afterSubmit();
             this.currentObjetEdited = null;
           } else {
             console.error('Failed to add objet:', response.error);

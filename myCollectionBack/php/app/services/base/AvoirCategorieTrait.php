@@ -147,16 +147,19 @@ trait AvoirCategorieTrait
             throw new \InvalidArgumentException("At least one of idObjet or idCategorie must be provided.");
         }
 
-        if ($idObjet !== null && $idCategorie !== null) {
-            throw new \InvalidArgumentException("Only one of idObjet or idCategorie should be provided.");
-        }
+
 
         $sql = "DELETE FROM " . AvoirCategorie::TABLE . " WHERE ";
         $params = [];
         if ($idObjet !== null) {
             $sql .= "Id_Objet = :idObjet";
             $params['idObjet'] = $idObjet;
-        } else {
+        }
+
+        if ($idCategorie !== null) {
+            if (!empty($params)) {
+                $sql .= " AND ";
+            }
             $sql .= "Id_Categorie = :idCategorie";
             $params['idCategorie'] = $idCategorie;
         }

@@ -24,7 +24,7 @@ use MyCollection\app\utils\BddUtils;
 use MyCollection\app\utils\lang\ArrayUtils;
 use MyCollection\app\utils\ValidatorsUtils;
 
-class ObjetController extends AbstractController
+class ObjetController extends AbstractController implements IObjetController
 {
     private ObjetServices $objetServices;
     private ProprietaireService $proprietaireService;
@@ -64,6 +64,7 @@ class ObjetController extends AbstractController
 
     }
 
+
     /**
      * @param $objet
      * @param $toFilterKey
@@ -99,7 +100,118 @@ class ObjetController extends AbstractController
         return array($objet, $toFilterKey);
     }
 
-    /** @noinspection PhpUnused */
+    public function updateObjet(): ResponseObject
+    {
+        $retArray = ResponseUtils::getDefaultResponseArray(false);
+        $datas = $this->getRequest()->getBodyJson();
+
+        try {
+            BddUtils::initTransaction();
+
+            if (!ValidatorsUtils::allExistsInArray(['idObjet', 'data'], $datas)) {
+                throw new \Exception('Les champs idObjet et data sont obligatoires.');
+            }
+            if (!ValidatorsUtils::isValidInt($datas['idObjet'], 1)) {
+                throw new \Exception('L\'id de l\'objet est obligatoire.');
+            }
+
+            $idObjet = intval($datas['idObjet']);
+            $objetExisting = $this->objetServices->getObjetById($idObjet);
+            if (empty($objetExisting)) {
+                throw new \Exception('L\'objet avec l\'id ' . $idObjet . ' n\'existe pas.');
+            }
+
+            $datas = $datas['data'];
+
+            $datas = $this->validateDatasAddNewObjet($datas, ['imageMode']);
+
+            $isObjetExistingHasChange = false;
+
+            if ($objetExisting->getNom() !== $datas['nom']) {
+                $isObjetExistingHasChange = true;
+                $objetExisting->setNom($datas['nom']);
+            }
+            if ($objetExisting->getDescription() !== $datas['description']) {
+                $isObjetExistingHasChange = true;
+                $objetExisting->setDescription($datas['description']);
+            }
+
+            if ($isObjetExistingHasChange && !$this->objetServices->updateObjet($objetExisting)) {
+                throw new \Exception('Erreur lors de la mise à jour de l\'objet.');
+            }
+
+            $objetExistingArray = $this->fillFullObjet($objetExisting, [])[0];
+
+
+            // On met à jour les proprietaires
+            // ----
+            $idsPropsRaw = $datas['idProprietaire'];
+
+            $currentProprietaireIds = array_map(
+                fn($prop) => $prop->getIdProprietaire(),
+                $objetExistingArray[Proprietaire::TABLE]
+            );
+            $diffNotNeeded = ArrayUtils::diff($currentProprietaireIds, $idsPropsRaw);
+            foreach ($diffNotNeeded as $idProp) {
+                if (!$this->objetServices->deleteEtrePossede($objetExisting->getIdObjet(), $idProp)) {
+                    throw new \Exception('Erreur lors de la suppression du proprietaire avec l\'id ' . $idProp . ' de l\'objet.');
+                }
+            }
+            $diffIsNew = ArrayUtils::diff($idsPropsRaw, $currentProprietaireIds);
+            foreach ($diffIsNew as $idProp) {
+                if (!$this->objetServices->addEtrePossede(new EtrePossede($objetExisting->getIdObjet(), $idProp))) {
+                    throw new \Exception('Erreur lors de l\'ajout du proprietaire avec l\'id ' . $idProp . ' à l\'objet.');
+                }
+            }
+
+
+            // On met à jour les catégories
+            // ----
+
+            $categoriesRaw = $datas['categories'];
+            $currentCategories = $objetExistingArray[Categorie::TABLE];
+
+            $currentCategoriesIds = array_map(
+                fn($cat) => $cat->getIdCategorie(),
+                $currentCategories
+            );
+            $categoriesRawId = array_map(
+                fn($cat) => $cat['Id_Categorie'],
+                $categoriesRaw
+            );
+
+            $diffNotNeeded = ArrayUtils::diff($currentCategoriesIds, $categoriesRawId);
+            foreach ($diffNotNeeded as $idCat) {
+                if (!$this->categorieServices->deleteAvoirCategorieByIdObjet($objetExisting->getIdObjet(), $idCat)) {
+                    throw new \Exception('Erreur lors de la suppression de la catégorie avec l\'id ' . $idCat . ' de l\'objet.');
+                }
+            }
+            $diffIsNew = ArrayUtils::diff($categoriesRawId, $currentCategoriesIds);
+            foreach ($diffIsNew as $idCat) {
+                $newCat = ArrayUtils::findOne( fn($nCat) => $nCat['Id_Categorie'] == $idCat , $categoriesRaw);
+                if (empty($newCat)) {
+                    throw new \Exception('La catégorie avec l\'id ' . $idCat . ' n\'existe pas dans les données fournies.');
+                }
+                $this->addOrLinkCategorie($newCat, $objetExisting);
+            }
+
+
+            BddUtils::commitTransaction();
+            $retArray['result'] = true;
+            $retArray['content']['data'] = true;
+            $retArray['content']['type'] = 'bool';
+            return ResponseObject::ResultsObjectToJson($retArray);
+
+        } catch (\Exception $exception) {
+
+            BddUtils::rollbackTransaction();
+
+            $retArray['content']['message'] = 'Erreur lors de la mise à jour de l\'objet : ' . $exception->getMessage();
+            return ResponseObject::ResultsObjectToJson($retArray);
+        }
+
+    }
+
     public function getObjetById(int $objetId): ResponseObject
     {
 
@@ -126,6 +238,123 @@ class ObjetController extends AbstractController
         return ResponseObject::ResultsObjectToJson(AppUtils::toArrayIToArray($retArray, $toFilterKey));
 
 
+    }
+
+    private function validateDatasAddNewObjet(array $datas, array $skipPart = []): array
+    {
+
+
+        ValidatorsUtils::allExistsInArray(['nom', 'description', 'idProprietaire'], $datas, true,
+            'Les champs nom, description et idProprietaire sont obligatoires.');
+
+
+        // Validation du nom
+        $datas['nom'] = trim(htmlspecialchars($datas['nom']));
+        ValidatorsUtils::isNotEmptyString($datas['nom'], true, 'Le nom de l\'objet ne peut pas être vide.');
+        ValidatorsUtils::isStringLengthLessThan($datas['nom'], 255, true, 'Le nom de l\'objet ne peut pas dépasser 255 caractères.');
+
+
+        // Validation de la description
+        $datas['description'] = trim(htmlspecialchars($datas['description']));
+
+
+        // Vérification des proprietaires
+        $proprietaires = $datas['idProprietaire'];
+        if (!is_array($proprietaires) || empty($proprietaires)) {
+            throw new \Exception('Le champ idProprietaire doit être un tableau non vide.');
+        }
+
+        $cleanedProprietaires = [];
+        foreach ($proprietaires as $idProp) {
+            ValidatorsUtils::isValidInt($idProp, 1, null, true, 'L\'id du proprietaire doit être un entier positif.');
+            $proprietaireObj = $this->proprietaireService->getProprietaireById($idProp);
+            if (empty($proprietaireObj)) {
+                throw new \Exception('Le proprietaire avec l\'id ' . $idProp . ' n\'existe pas.');
+            }
+
+            $cleanedProprietaires[] = $idProp;
+        }
+        $datas['idProprietaire'] = $cleanedProprietaires;
+
+
+        // Validation du mode d'image
+        if (!in_array('imageMode', $skipPart, true)) {
+
+            $imageMode = $datas['imageMode'] ?? '';
+            $validImageModes = ['upload', 'url', 'none'];
+            if (!in_array($imageMode, $validImageModes, true)) {
+                throw new \Exception('Le mode d\'image doit être "upload" ou "url".');
+            }
+            if ($imageMode === 'upload' && empty($_FILES) && !isset($_FILES['file'])) {
+                throw new \Exception('Le mode d\'image "upload" nécessite un fichier image.');
+            }
+            if ($imageMode === 'url') {
+                if (empty($datas['imageUrl'])) {
+                    $datas['imageMode'] = 'none'; // Si aucune URL n'est fournie, on passe en mode "none"
+                } else {
+                    $datas['imageUrl'] = trim(htmlspecialchars($datas['imageUrl']));
+                    ValidatorsUtils::uriIsValidAndRespond(
+                        $datas['imageUrl'],
+                        true,
+                        'L\'URL de l\'image n\'est pas valide.'
+                    );
+                }
+            }
+        }
+
+        // Validation des catégories
+        if (!in_array('categories', $skipPart, true)
+            && isset($datas['categories'])
+            && is_array($datas['categories'])) {
+            foreach ($datas['categories'] as &$dataCategorie) {
+                $this->validateDatasCategorie($dataCategorie);
+
+            }
+        } else {
+            $datas['categories'] = [];
+        }
+
+        // Validation des mots-clés
+        if (!in_array('categories', $skipPart, true)
+            && isset($datas['keywords'])
+            && is_array($datas['keywords'])) {
+
+            foreach ($datas['keywords'] as &$dataCategorie) {
+                $this->validateDatasCategorie($dataCategorie);
+
+            }
+        } else {
+            $datas['keywords'] = [];
+        }
+
+        return $datas;
+    }
+
+    /**
+     * @param $dataCategorie
+     * @return void
+     */
+    public function validateDatasCategorie(array &$dataCategorie): void
+    {
+        ValidatorsUtils::allExistsInArray(['Id_Categorie', 'Nom'], $dataCategorie, true,
+            'Chaque catégorie doit contenir les champs Id_Categorie et Nom.');
+
+        ValidatorsUtils::isValidInt($dataCategorie['Id_Categorie'], null, null, true,
+            'L\'id de la catégorie doit être un entier.');
+
+        $idCategorie = intval($dataCategorie['Id_Categorie']);
+        $dataCategorie['Id_Categorie'] = $idCategorie;
+        $dataCategorie['Nom'] = trim(htmlspecialchars($dataCategorie['Nom']));
+
+        if ($idCategorie <= 0) {
+            ValidatorsUtils::allExistsInArray(['Id_TyCategorie'], $dataCategorie, true,
+                'Pour une nouvelle catégorie, le champ Id_TyCategorie est obligatoire.');
+
+            ValidatorsUtils::isValidInt($dataCategorie['Id_TyCategorie'], 1, 2, true,
+                'Le type de catégorie doit être un entier compris entre 1 et 2.');
+
+            $dataCategorie['Id_TyCategorie'] = intval($dataCategorie['Id_TyCategorie']);
+        }
     }
 
     public function addNewObjet(): ResponseObject
@@ -242,115 +471,6 @@ class ObjetController extends AbstractController
 
     }
 
-    private function validateDatasAddNewObjet(array $datas): array
-    {
-
-
-        ValidatorsUtils::allExistsInArray(['nom', 'description', 'idProprietaire'], $datas, true,
-            'Les champs nom, description et idProprietaire sont obligatoires.');
-
-
-        // Validation du nom
-        $datas['nom'] = trim(htmlspecialchars($datas['nom']));
-        ValidatorsUtils::isNotEmptyString($datas['nom'], true, 'Le nom de l\'objet ne peut pas être vide.');
-        ValidatorsUtils::isStringLengthLessThan($datas['nom'], 255, true, 'Le nom de l\'objet ne peut pas dépasser 255 caractères.');
-
-
-        // Validation de la description
-        $datas['description'] = trim(htmlspecialchars($datas['description']));
-
-
-        // Vérification des proprietaires
-        $proprietaires = $datas['idProprietaire'];
-        if (!is_array($proprietaires) || empty($proprietaires)) {
-            throw new \Exception('Le champ idProprietaire doit être un tableau non vide.');
-        }
-
-        $cleanedProprietaires = [];
-        foreach ($proprietaires as $idProp) {
-            ValidatorsUtils::isValidInt($idProp, 1, null, true, 'L\'id du proprietaire doit être un entier positif.');
-            $proprietaireObj = $this->proprietaireService->getProprietaireById($idProp);
-            if (empty($proprietaireObj)) {
-                throw new \Exception('Le proprietaire avec l\'id ' . $idProp . ' n\'existe pas.');
-            }
-
-            $cleanedProprietaires[] = $idProp;
-        }
-        $datas['idProprietaire'] = $cleanedProprietaires;
-
-
-        // Validation du mode d'image
-        $imageMode = $datas['imageMode'] ?? '';
-        $validImageModes = ['upload', 'url', 'none'];
-        if (!in_array($imageMode, $validImageModes, true)) {
-            throw new \Exception('Le mode d\'image doit être "upload" ou "url".');
-        }
-        if ($imageMode === 'upload' && empty($_FILES) && !isset($_FILES['file'])) {
-            throw new \Exception('Le mode d\'image "upload" nécessite un fichier image.');
-        }
-        if ($imageMode === 'url') {
-            if (empty($datas['imageUrl'])) {
-                $datas['imageMode'] = 'none'; // Si aucune URL n'est fournie, on passe en mode "none"
-            } else {
-                $datas['imageUrl'] = trim(htmlspecialchars($datas['imageUrl']));
-                ValidatorsUtils::uriIsValidAndRespond(
-                    $datas['imageUrl'],
-                    true,
-                    'L\'URL de l\'image n\'est pas valide.'
-                );
-            }
-        }
-
-        // Validation des catégories
-        if (isset($datas['categories']) && is_array($datas['categories'])) {
-            foreach ($datas['categories'] as &$dataCategorie) {
-                $this->validateDatasCategorie($dataCategorie);
-
-            }
-        } else {
-            $datas['categories'] = [];
-        }
-
-        // Validation des mots-clés
-        if (isset($datas['keywords']) && is_array($datas['keywords'])) {
-            foreach ($datas['keywords'] as &$dataCategorie) {
-                $this->validateDatasCategorie($dataCategorie);
-
-            }
-        } else {
-            $datas['keywords'] = [];
-        }
-
-        return $datas;
-    }
-
-    /**
-     * @param $dataCategorie
-     * @return void
-     */
-    public function validateDatasCategorie(array &$dataCategorie): void
-    {
-        ValidatorsUtils::allExistsInArray(['Id_Categorie', 'Nom'], $dataCategorie, true,
-            'Chaque catégorie doit contenir les champs Id_Categorie et Nom.');
-
-        ValidatorsUtils::isValidInt($dataCategorie['Id_Categorie'], null, null, true,
-            'L\'id de la catégorie doit être un entier.');
-
-        $idCategorie = intval($dataCategorie['Id_Categorie']);
-        $dataCategorie['Id_Categorie'] = $idCategorie;
-        $dataCategorie['Nom'] = trim(htmlspecialchars($dataCategorie['Nom']));
-
-        if ($idCategorie <= 0) {
-            ValidatorsUtils::allExistsInArray(['Id_TyCategorie'], $dataCategorie, true,
-                'Pour une nouvelle catégorie, le champ Id_TyCategorie est obligatoire.');
-
-            ValidatorsUtils::isValidInt($dataCategorie['Id_TyCategorie'], 1, 2, true,
-                'Le type de catégorie doit être un entier compris entre 1 et 2.');
-
-            $dataCategorie['Id_TyCategorie'] = intval($dataCategorie['Id_TyCategorie']);
-        }
-    }
-
     /**
      * @param $dataCategorie
      * @param Objet $newObj
@@ -399,5 +519,6 @@ class ObjetController extends AbstractController
             throw new \Exception('Erreur lors de l\'ajout de la catégorie à l\'objet.');
         }
     }
+
 
 }

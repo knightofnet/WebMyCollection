@@ -27,6 +27,11 @@ $routes = [
     'PUT' => [
         '/api/v1/users/{id}' => 'UserController@update',
 
+        // Objet
+        '/api/v1/objet/updateObjet' => 'ObjetController@updateObjet',
+
+
+
 
     ],
     'DELETE' => [
