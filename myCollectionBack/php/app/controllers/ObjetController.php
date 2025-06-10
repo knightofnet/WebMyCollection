@@ -147,53 +147,33 @@ class ObjetController extends AbstractController implements IObjetController
             // ----
             $idsPropsRaw = $datas['idProprietaire'];
 
-            $currentProprietaireIds = array_map(
-                fn($prop) => $prop->getIdProprietaire(),
-                $objetExistingArray[Proprietaire::TABLE]
+            $currentProprietaireIds = array_map(fn($prop) => $prop->getIdProprietaire(), $objetExistingArray[Proprietaire::TABLE]);
+
+            $this->updatesDiffOn($currentProprietaireIds, $idsPropsRaw,
+                fn($idPropToDel) => $this->objetServices->deleteEtrePossede($objetExisting->getIdObjet(), $idPropToDel),
+                fn($idPropToAdd) => $this->objetServices->addEtrePossede(new EtrePossede($objetExisting->getIdObjet(), $idPropToAdd))
             );
-            $diffNotNeeded = ArrayUtils::diff($currentProprietaireIds, $idsPropsRaw);
-            foreach ($diffNotNeeded as $idProp) {
-                if (!$this->objetServices->deleteEtrePossede($objetExisting->getIdObjet(), $idProp)) {
-                    throw new \Exception('Erreur lors de la suppression du proprietaire avec l\'id ' . $idProp . ' de l\'objet.');
-                }
-            }
-            $diffIsNew = ArrayUtils::diff($idsPropsRaw, $currentProprietaireIds);
-            foreach ($diffIsNew as $idProp) {
-                if (!$this->objetServices->addEtrePossede(new EtrePossede($objetExisting->getIdObjet(), $idProp))) {
-                    throw new \Exception('Erreur lors de l\'ajout du proprietaire avec l\'id ' . $idProp . ' à l\'objet.');
-                }
-            }
 
 
             // On met à jour les catégories
             // ----
-
             $categoriesRaw = $datas['categories'];
             $currentCategories = $objetExistingArray[Categorie::TABLE];
 
-            $currentCategoriesIds = array_map(
-                fn($cat) => $cat->getIdCategorie(),
-                $currentCategories
-            );
-            $categoriesRawId = array_map(
-                fn($cat) => $cat['Id_Categorie'],
-                $categoriesRaw
-            );
+            $currentCategoriesIds = array_map(fn($cat) => $cat->getIdCategorie(), $currentCategories);
+            $categoriesRawId = array_map(fn($cat) => $cat['Id_Categorie'], $categoriesRaw);
 
-            $diffNotNeeded = ArrayUtils::diff($currentCategoriesIds, $categoriesRawId);
-            foreach ($diffNotNeeded as $idCat) {
-                if (!$this->categorieServices->deleteAvoirCategorieByIdObjet($objetExisting->getIdObjet(), $idCat)) {
-                    throw new \Exception('Erreur lors de la suppression de la catégorie avec l\'id ' . $idCat . ' de l\'objet.');
+            $this->updatesDiffOn($currentCategoriesIds, $categoriesRawId,
+                fn($idPropToDel) => $this->categorieServices->deleteAvoirCategorieByIdObjet($objetExisting->getIdObjet(), $idPropToDel),
+                function ($idPropToAdd) use ($objetExisting, $categoriesRaw) {
+                    $newCat = ArrayUtils::findOne(fn($nCat) => $nCat['Id_Categorie'] == $idPropToAdd, $categoriesRaw);
+                    if (empty($newCat)) {
+                        throw new \Exception('La catégorie avec l\'id ' . $idPropToAdd . ' n\'existe pas dans les données fournies.');
+                    }
+                    $this->addOrLinkCategorie($newCat, $objetExisting);
+                    return true;
                 }
-            }
-            $diffIsNew = ArrayUtils::diff($categoriesRawId, $currentCategoriesIds);
-            foreach ($diffIsNew as $idCat) {
-                $newCat = ArrayUtils::findOne( fn($nCat) => $nCat['Id_Categorie'] == $idCat , $categoriesRaw);
-                if (empty($newCat)) {
-                    throw new \Exception('La catégorie avec l\'id ' . $idCat . ' n\'existe pas dans les données fournies.');
-                }
-                $this->addOrLinkCategorie($newCat, $objetExisting);
-            }
+            );
 
 
             // On met à jour les mots-clés
@@ -202,29 +182,20 @@ class ObjetController extends AbstractController implements IObjetController
             $keywordsRaw = $datas['keywords'];
             $currentKeywords = $objetExistingArray[TypeCategorieCst::ObjetPropKeywords];
 
-            $currentKeywordsIds = array_map(
-                fn($cat) => $cat->getIdCategorie(),
-                $currentKeywords
-            );
-            $keywordsRawId = array_map(
-                fn($cat) => $cat['Id_Categorie'],
-                $keywordsRaw
-            );
+            $currentKeywordsIds = array_map(fn($cat) => $cat->getIdCategorie(), $currentKeywords);
+            $keywordsRawId = array_map(fn($cat) => $cat['Id_Categorie'], $keywordsRaw);
 
-            $diffNotNeeded = ArrayUtils::diff($currentKeywordsIds, $keywordsRawId);
-            foreach ($diffNotNeeded as $idCat) {
-                if (!$this->categorieServices->deleteAvoirCategorieByIdObjet($objetExisting->getIdObjet(), $idCat)) {
-                    throw new \Exception('Erreur lors de la suppression du mot-clé avec l\'id ' . $idCat . ' de l\'objet.');
+            $this->updatesDiffOn($currentKeywordsIds, $keywordsRawId,
+                fn($idPropToDel): bool => $this->categorieServices->deleteAvoirCategorieByIdObjet($objetExisting->getIdObjet(), $idPropToDel),
+                function ($idPropToAdd) use ($objetExisting, $keywordsRaw) {
+                    $newCat = ArrayUtils::findOne(fn($nCat) => $nCat['Id_Categorie'] == $idPropToAdd, $keywordsRaw);
+                    if (empty($newCat)) {
+                        throw new \Exception('Le mot-clé avec l\'id ' . $idPropToAdd . ' n\'existe pas dans les données fournies.');
+                    }
+                    $this->addOrLinkCategorie($newCat, $objetExisting);
+                    return true;
                 }
-            }
-            $diffIsNew = ArrayUtils::diff($keywordsRawId, $currentKeywordsIds);
-            foreach ($diffIsNew as $idCat) {
-                $newCat = ArrayUtils::findOne( fn($nCat) => $nCat['Id_Categorie'] == $idCat , $keywordsRaw);
-                if (empty($newCat)) {
-                    throw new \Exception('Le mot-clé avec l\'id ' . $idCat . ' n\'existe pas dans les données fournies.');
-                }
-                $this->addOrLinkCategorie($newCat, $objetExisting);
-            }
+            );
 
 
             BddUtils::commitTransaction();
@@ -388,6 +359,83 @@ class ObjetController extends AbstractController implements IObjetController
         }
     }
 
+    private function updatesDiffOn(array $listIdExisting, $listIdPosted, \Closure $closureDelete, \Closure $closureAdd): void
+    {
+
+        $diffNotNeeded = ArrayUtils::diff($listIdExisting, $listIdPosted);
+        foreach ($diffNotNeeded as $idToDel) {
+            try {
+
+                if (!$closureDelete($idToDel)) {
+                    throw new \Exception('Erreur lors de la suppression de l\'élément avec l\'id ' . $idToDel . ' (return false).');
+                }
+            } catch (\Exception $e) {
+                throw new \Exception('Erreur lors de la suppression de l\'élément avec l\'id ' . $idToDel . ' (exception dans la closure) : ' . $e->getMessage());
+            }
+        }
+
+        $diffIsNew = ArrayUtils::diff($listIdPosted, $listIdExisting);
+        foreach ($diffIsNew as $idToAdd) {
+            try {
+                if (!$closureAdd($idToAdd)) {
+                    throw new \Exception('Erreur lors de l\'ajout de l\'élément avec l\'id ' . $idToAdd . ' (return false).');
+                }
+            } catch (\Exception $e) {
+                throw new \Exception('Erreur lors de l\'ajout de l\'élément avec l\'id ' . $idToAdd . ' (exception dans la closure) : ' . $e->getMessage());
+            }
+        }
+
+    }
+
+    /**
+     * @param $dataCategorie
+     * @param Objet $newObj
+     * @return void
+     * @throws \Exception
+     */
+    public
+    function addOrLinkCategorie($dataCategorie, Objet $newObj): void
+    {
+
+        // verifions
+        $idCat = $dataCategorie['Id_Categorie'];
+
+        $nomUnique = htmlspecialchars($dataCategorie['Nom']);
+        $nomUnique = AppUtils::strToKebabCase($nomUnique, true);
+
+
+        /** @var Categorie $categorieObj */
+        $categorieObj = null;
+        if ($idCat <= 0) {
+
+            $idTyCat = $dataCategorie['Id_TyCategorie'];
+
+            if ($cat = $this->categorieServices->getCategorieByNomUniqueAndType($nomUnique, $idTyCat)) {
+                $categorieObj = $cat;
+            }
+
+        } else {
+            $categorieObj = $this->categorieServices->getCategorieById($idCat);
+        }
+
+        if (empty($categorieObj)) {
+            $categorieObj = new Categorie();
+            $categorieObj->setNom($dataCategorie['Nom']);
+            $categorieObj->setNomUnique($nomUnique);
+            $categorieObj->setIdTyCategorie($dataCategorie['Id_TyCategorie']);
+            if (!$this->categorieServices->addCategorie($categorieObj)) {
+                throw new \Exception('Erreur lors de l\'ajout de la catégorie.');
+            }
+        }
+
+        if (!$this->categorieServices->addAvoirCategorie(new AvoirCategorie(
+            $newObj->getIdObjet(),
+            $categorieObj->getIdCategorie()
+        ))) {
+            throw new \Exception('Erreur lors de l\'ajout de la catégorie à l\'objet.');
+        }
+    }
+
     public function addNewObjet(): ResponseObject
     {
 
@@ -500,55 +548,6 @@ class ObjetController extends AbstractController implements IObjetController
         }
 
 
-    }
-
-    /**
-     * @param $dataCategorie
-     * @param Objet $newObj
-     * @return void
-     * @throws \Exception
-     */
-    public
-    function addOrLinkCategorie($dataCategorie, Objet $newObj): void
-    {
-
-        // verifions
-        $idCat = $dataCategorie['Id_Categorie'];
-
-        $nomUnique = htmlspecialchars($dataCategorie['Nom']);
-        $nomUnique = AppUtils::strToKebabCase($nomUnique, true);
-
-
-        /** @var Categorie $categorieObj */
-        $categorieObj = null;
-        if ($idCat <= 0) {
-
-            $idTyCat = $dataCategorie['Id_TyCategorie'];
-
-            if ($cat = $this->categorieServices->getCategorieByNomUniqueAndType($nomUnique, $idTyCat)) {
-                $categorieObj = $cat;
-            }
-
-        } else {
-            $categorieObj = $this->categorieServices->getCategorieById($idCat);
-        }
-
-        if (empty($categorieObj)) {
-            $categorieObj = new Categorie();
-            $categorieObj->setNom($dataCategorie['Nom']);
-            $categorieObj->setNomUnique($nomUnique);
-            $categorieObj->setIdTyCategorie($dataCategorie['Id_TyCategorie']);
-            if (!$this->categorieServices->addCategorie($categorieObj)) {
-                throw new \Exception('Erreur lors de l\'ajout de la catégorie.');
-            }
-        }
-
-        if (!$this->categorieServices->addAvoirCategorie(new AvoirCategorie(
-            $newObj->getIdObjet(),
-            $categorieObj->getIdCategorie()
-        ))) {
-            throw new \Exception('Erreur lors de l\'ajout de la catégorie à l\'objet.');
-        }
     }
 
 
