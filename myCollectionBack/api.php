@@ -36,6 +36,9 @@ $routes = [
     ],
     'DELETE' => [
 
+        // Objet
+        '/api/v1/objet/deleteObjet' => 'ObjetController@deleteObjet',
+
     ],
 ];
 

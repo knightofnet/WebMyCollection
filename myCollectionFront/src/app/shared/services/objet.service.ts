@@ -53,4 +53,11 @@ export class ObjetService {
     };
     return this.httpClient.put<IGenResponse<boolean>>('/api/v1/objet/updateObjet', data);
   }
+
+  deleteObjet(idObjet: number) : Observable<IGenResponse<boolean>> {
+    const data = {
+      idObjet: idObjet,
+    }
+    return this.httpClient.delete<IGenResponse<boolean>>('/api/v1/objet/deleteObjet', {body: data});
+  }
 }

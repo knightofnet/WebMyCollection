@@ -214,6 +214,47 @@ class ObjetController extends AbstractController implements IObjetController
 
     }
 
+    public function deleteObjet(): ResponseObject
+    {
+        $retArray = ResponseUtils::getDefaultResponseArray(false);
+        $datas = $this->getRequest()->getBodyJson();
+
+        try {
+            BddUtils::initTransaction();
+
+            if (!ValidatorsUtils::allExistsInArray(['idObjet'], $datas)) {
+                throw new \Exception('Le champ idObjet est obligatoire.');
+            }
+            if (!ValidatorsUtils::isValidInt($datas['idObjet'], 1)) {
+                throw new \Exception('L\'id de l\'objet est obligatoire.');
+            }
+
+            $idObjet = intval($datas['idObjet']);
+            $objetExisting = $this->objetServices->getObjetById($idObjet);
+            if (empty($objetExisting)) {
+                throw new \Exception('L\'objet avec l\'id ' . $idObjet . ' n\'existe pas.');
+            }
+
+            if (!$this->objetServices->deleteObjet($objetExisting->getIdObjet())) {
+                throw new \Exception('Erreur lors de la suppression de l\'objet.');
+            }
+
+            $retArray['result'] = true;
+            $retArray['content']['data'] = true;
+            $retArray['content']['type'] = 'bool';
+            BddUtils::commitTransaction();
+
+            return ResponseObject::ResultsObjectToJson($retArray);
+
+        } catch (\Exception $exception) {
+            BddUtils::rollbackTransaction();
+            $retArray['content']['message'] = 'Erreur lors de la suppression de l\'objet : ' . $exception->getMessage();
+            return ResponseObject::ResultsObjectToJson($retArray);
+
+        }
+
+    }
+
     public function getObjetById(int $objetId): ResponseObject
     {
 

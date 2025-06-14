@@ -60,6 +60,10 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary">Voir</button>
                     @if (isUserProprietaire(objet)) {
                       <a type="button" [routerLink]="['/editOne', objet.Id_Objet]"  class="btn btn-sm btn-outline-secondary">Modifier</a>
+                      <button type="button" class="btn btn-sm btn-outline-danger"
+                              (click)="onDeleteObjet(objet)">
+                        Supprimer
+                      </button>
                     }
 
                   </div>
@@ -81,5 +85,10 @@
     </div>
 
   </div>
+
+<app-bootstrap-modal #modalDelete idModal="confirmDelete" >
+  <modal-title>Question</modal-title>
+  <modal-body>Voulez-vous vraiment supprimer cet objet ?</modal-body>
+</app-bootstrap-modal>
 
 </div>

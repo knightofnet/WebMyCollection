@@ -1,0 +1,30 @@
+<div #modalRef class="modal fade modal-fullscreen" id="{{idModal()}}"
+     tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="{{idModal()}}Title">
+          @if (title && title.length > 0) {
+            {{ title }}
+          } @else {
+            <ng-content select="modal-title"></ng-content>
+          }
+
+        </h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" (click)="clickCancel.emit(false)"></button>
+      </div>
+      <div class="modal-body">
+        @if (body && body.length > 0) {
+          {{ body }}
+        } @else {
+          <ng-content select="modal-body"></ng-content>
+        }
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn {{btnCancelClass}}" data-bs-dismiss="modal" (click)="clickCancel.emit(true)">{{ btnCancelText }}</button>
+        <button type="button" class="btn {{ btnOkClass}}" (click)="clickOk.emit()">{{ btnOkText }}</button>
+      </div>
+    </div>
+  </div>
+</div>
