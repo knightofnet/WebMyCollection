@@ -40,6 +40,10 @@
               <div class="alert alert-warning" role="alert">
                 {{ messageSendMail }}
               </div>
+            } @else if (loginState == 3) {
+              <div class="alert alert-success" role="alert">
+                {{ messageSendMail }}
+              </div>
             }
 
           }

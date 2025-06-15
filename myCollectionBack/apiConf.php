@@ -1,7 +1,8 @@
 <?php
 $routes = [
     'GET' => [
-
+        // Auth
+        '/api/v1/auth/isAuthenticated' => 'AuthController@isAuthenticated',
 
         // Objet
         '/api/v1/objet/getAll/{userId}' => 'ObjetController@getAllByUserId',

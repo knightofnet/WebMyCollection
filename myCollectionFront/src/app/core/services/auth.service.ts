@@ -24,4 +24,7 @@ export class AuthService {
   }
 
 
+  isAuthenticatedAsync()  : Observable<IGenResponse<boolean>>  {
+    return this.apiService.getWithCredential<IGenResponse<boolean>>('/api/v1/auth/isAuthenticated');
+  }
 }

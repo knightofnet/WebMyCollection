@@ -1,7 +1,7 @@
 import {Component, inject, OnInit} from '@angular/core';
 import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
 import {AuthService} from '../../../core/services/auth.service';
-import {ActivatedRoute} from '@angular/router';
+import {ActivatedRoute, Router} from '@angular/router';
 
 @Component({
   selector: 'app-page-login',
@@ -36,6 +36,7 @@ export class PageLoginComponent implements OnInit {
   messageSendMail?: string;
 
   constructor(private authService: AuthService,
+              private router: Router,
               private route: ActivatedRoute) {
     // Initialize the form or any other necessary setup
   }
@@ -44,12 +45,41 @@ export class PageLoginComponent implements OnInit {
 
     const token = this.route.snapshot.paramMap.get('token');
 
+    let redirectToParam = this.route.snapshot.queryParamMap.get('redirectTo');
+    if (redirectToParam === null) {
+      redirectToParam = '/list';
+    }
+
+    this.authService.isAuthenticatedAsync().subscribe(
+      {
+        next: (response) => {
+          if (response.result) {
+            this.router.navigate([redirectToParam]);
+          } else {
+            this.verifyToken(token);
+
+          }
+        },
+        error: (error) => {
+          this.verifyToken(token, redirectToParam);
+        }
+      });
+
+
+  }
+
+  private verifyToken(token: string | null, redirectTo?: string) {
     if (token) {
       this.authService.validateLoginToken(token).subscribe({
         next: (response) => {
           if (response.result) {
-            this.loginState = 1; // Token is valid, proceed with login
-            this.messageSendMail = "Token validé. Vous pouvez vous connecter.";
+            this.loginState = 3; // Token is valid, proceed with login
+            this.messageSendMail = "Token validé.";
+
+            if (redirectTo) {
+              this.router.navigate([redirectTo]);
+            }
+
           } else {
             this.loginState = 2; // Token is invalid
             this.messageSendMail = "Token invalide ou expiré. Veuillez réessayer.";
@@ -57,7 +87,7 @@ export class PageLoginComponent implements OnInit {
         },
         error: (error) => {
           this.loginState = 2; // Error during token validation
-          this.messageSendMail = "Une erreur est survenue lors de la validation du token. Veuillez réessayer plus tard.";
+          this.messageSendMail = "Erreur lors de la vérification de connexion.";
         }
       });
     }

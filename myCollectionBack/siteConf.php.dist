@@ -1,0 +1,4 @@
+<?php
+const SITE_HASH = 'HASH POUR LE SITE';
+
+const SITE_SECRET_FILE = '/secret/dbb_DEV.ini';

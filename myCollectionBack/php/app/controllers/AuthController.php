@@ -3,7 +3,6 @@
 namespace MyCollection\app\controllers;
 
 use DateTime;
-use Firebase\JWT\JWT;
 use MiniPhpRest\core\AbstractController;
 use MiniPhpRest\core\ResponseObject;
 use MyCollection\app\dto\ResponsePropsObject;
@@ -24,6 +23,22 @@ class AuthController extends AbstractController
         $this->proprietaireService = new ProprietaireService();
     }
 
+
+    public function isAuthenticated(): ResponseObject
+    {
+        $retObj = new ResponsePropsObject();
+        $userId = AuthUtils::verifyTokenByCookieAndReturnProp('userId', false);
+        $returnBool = false;
+        if ($userId) {
+            $returnBool = true;
+        }
+        $retObj->setResult(true)
+            ->setData($returnBool)
+            ->setType('boolean');
+
+        return ResponseObject::ResultsObjectToJson($retObj->toArray(), $returnBool ? 200 : 401);
+
+    }
 
 
     public function login(): ResponseObject
@@ -66,7 +81,7 @@ class AuthController extends AbstractController
             $this->proprietaireService->addLoginToken($proprietaire->getIdProprietaire(), $token, $expires_at);
 
 
-            $subject = 'Enigmas - Nouvelle connexion';
+            $subject = 'MyCollection - Nouvelle connexion';
             $body = 'Bonjour ' . $proprietaire->getNom() . ',<br><br>' .
                 'Une nouvelle connexion a été détectée sur votre compte Knightofnet:MyCollection !' . "<br><br>" .
                 'Cliquez sur le lien ci-dessous pour vous connecter : ' . "<br>" .
@@ -129,9 +144,6 @@ class AuthController extends AbstractController
             ];
             $jwt = AuthUtils::encodeJwtPayload($payload);
             AuthUtils::setAuthCookie($jwt);
-
-
-
 
 
             $retObj->setResult(true)
