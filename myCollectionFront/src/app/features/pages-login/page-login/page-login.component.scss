@@ -1,0 +1,36 @@
+.page-login {
+
+  background-color: darkslateblue;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+
+  .card {
+    width: 60%;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border : none;
+  }
+
+  .rounded-t-5 {
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+
+  }
+
+  @media (min-width: 992px) {
+
+    ///padding : 3em;
+
+    .rounded-tr-lg-0 {
+      border-top-right-radius: 0;
+      border-color: red;
+    }
+
+    .rounded-bl-lg-5 {
+      border-bottom-left-radius: 0.5rem;
+      border-color: red;
+    }
+  }
+}

@@ -3,49 +3,13 @@ require_once('vendor/autoload.php');
 
 session_start();
 
-$routes = [
-    'GET' => [
-
-
-        // Objet
-        '/api/v1/objet/getAll/{userId}' => 'ObjetController@getAllByUserId',
-        '/api/v1/objet/getById/{objetId}' => 'ObjetController@getObjetById',
-
-        // Proprietaire
-        '/api/v1/proprietaire/getAll' => 'ProprietaireController@getAllProprietaires',
-
-        // Categorie
-        '/api/v1/categorie/getAll' => 'CategorieController@getAllCategories',
-
-
-    ],
-    'POST' => [
-        // Objet
-        '/api/v1/objet/addNewObjet' => 'ObjetController@addNewObjet',
-
-    ],
-    'PUT' => [
-        '/api/v1/users/{id}' => 'UserController@update',
-
-        // Objet
-        '/api/v1/objet/updateObjet' => 'ObjetController@updateObjet',
-
-
-
-
-    ],
-    'DELETE' => [
-
-        // Objet
-        '/api/v1/objet/deleteObjet' => 'ObjetController@deleteObjet',
-
-    ],
-];
+require_once('apiConf.php');
+require_once('siteConf.php');
 
 const SERVER_ROOT = __DIR__;
-const SITE_HASH = 'j7sx88tcgp*98*-OOO_cxnj';
 
-$siteConf = \MyCollection\app\utils\SiteIniFile::instance(SERVER_ROOT . "/secret/dbb_DEV.ini");
+
+$siteConf = \MyCollection\app\utils\SiteIniFile::instance(SERVER_ROOT . SITE_SECRET_FILE);
 
 $config = new \MiniPhpRest\core\MiniPhpRestConfig();
 $config->setIsDebug(true);

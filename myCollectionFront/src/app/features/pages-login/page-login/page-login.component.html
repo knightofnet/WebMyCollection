@@ -1,0 +1,52 @@
+<!-- Section: Design Block -->
+<section class="page-login text-center text-lg-start">
+
+  <div class="card mb-3">
+    <div class="row g-0 d-flex align-items-center">
+      <div class="col-lg-4 d-none d-lg-flex" style="align-self : stretch">
+        <img src="img/login.png" alt=""
+             class="w-100 rounded-t-5 rounded-tr-lg-0 rounded-bl-lg-5"/>
+      </div>
+      <div class="col-lg-8">
+        <div class="card-body py-5 px-md-5">
+
+          <form [formGroup]="formLogin" (ngSubmit)="handleSubmit()">
+            <!-- Nom d'utilisateur input -->
+            <div class="form-floating mb-3 mb-4">
+              <input type="text" id="forUsername" class="form-control" placeholder="Freddy" formControlName="username"/>
+              <label class="form-label" for="forUsername">Nom d'utilisateur</label>
+            </div>
+
+            <!-- Password input -->
+            <div class="form-floating mb-4">
+              <input type="password" id="formCodePin" class="form-control" placeholder="1515"
+                     formControlName="codepin"/>
+              <label class="form-label" for="formCodePin">Code PIN</label>
+            </div>
+
+
+            <!-- Submit button -->
+            <button type="submit" class="btn btn-primary btn-block mb-4" [disabled]="!formLogin.valid">Se connecter
+            </button>
+
+          </form>
+
+          @if (messageSendMail) {
+            @if (loginState == 2) {
+              <div class="alert alert-danger" role="alert">
+                {{ messageSendMail }}
+              </div>
+            } @else if (loginState == 1) {
+              <div class="alert alert-warning" role="alert">
+                {{ messageSendMail }}
+              </div>
+            }
+
+          }
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- Section: Design Block -->

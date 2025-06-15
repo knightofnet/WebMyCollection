@@ -5,6 +5,7 @@ import {IGenResponse} from '../../core/interfaces/i-genresponse';
 import {Observable} from 'rxjs';
 import {ICategorie} from '../interfaces/i-categorie';
 import {IParamForCreateOrUpdateObjet} from '../interfaces/side/i-param-for-create-or-update-objet';
+import {ApiService} from '../../core/services/ApiService';
 
 
 
@@ -14,14 +15,11 @@ import {IParamForCreateOrUpdateObjet} from '../interfaces/side/i-param-for-creat
 })
 export class ObjetService {
 
-  constructor(private httpClient: HttpClient) {
+  constructor(private apiService: ApiService) {
   }
 
   getAllObjetsOfProprietaire(idProprietaire: number): Observable<IGenResponse<IObjet[]>> {
-
-
-
-    return this.httpClient.get<IGenResponse<IObjet[]>>(`/api/v1/objet/getAll/${idProprietaire}`);
+    return this.apiService.getWithCredential<IGenResponse<IObjet[]>>(`/api/v1/objet/getAll/${idProprietaire}`);
   }
 
   addNewObjet(param: IParamForCreateOrUpdateObjet): Observable<IGenResponse<boolean>> {
@@ -38,12 +36,12 @@ export class ObjetService {
 
     formData.append("data", JSON.stringify(param));
 
-    return this.httpClient.post<IGenResponse<boolean>>('/api/v1/objet/addNewObjet', formData);
+    return this.apiService.post<IGenResponse<boolean>>('/api/v1/objet/addNewObjet', formData);
 
   }
 
   getObjetById(idObjet: number) : Observable<IGenResponse<IObjet>> {
-    return this.httpClient.get<IGenResponse<IObjet>>(`/api/v1/objet/getById/${idObjet}`);
+    return this.apiService.get<IGenResponse<IObjet>>(`/api/v1/objet/getById/${idObjet}`);
   }
 
   updateObjet(idObjet: number, params: IParamForCreateOrUpdateObjet) : Observable<IGenResponse<boolean>> {
@@ -51,13 +49,13 @@ export class ObjetService {
       idObjet: idObjet,
       data : params
     };
-    return this.httpClient.put<IGenResponse<boolean>>('/api/v1/objet/updateObjet', data);
+    return this.apiService.put<IGenResponse<boolean>>('/api/v1/objet/updateObjet', data);
   }
 
   deleteObjet(idObjet: number) : Observable<IGenResponse<boolean>> {
     const data = {
       idObjet: idObjet,
     }
-    return this.httpClient.delete<IGenResponse<boolean>>('/api/v1/objet/deleteObjet', {body: data});
+    return this.apiService.delete<IGenResponse<boolean>>('/api/v1/objet/deleteObjet',data);
   }
 }

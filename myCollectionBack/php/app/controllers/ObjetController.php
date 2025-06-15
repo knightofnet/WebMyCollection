@@ -3,6 +3,9 @@
 namespace MyCollection\app\controllers;
 
 
+use Exception;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use MiniPhpRest\core\AbstractController;
 use MiniPhpRest\core\ResponseObject;
 use MiniPhpRest\core\utils\ResponseUtils;
@@ -14,12 +17,14 @@ use MyCollection\app\dto\entities\EtrePossede;
 use MyCollection\app\dto\entities\Media;
 use MyCollection\app\dto\entities\Objet;
 use MyCollection\app\dto\entities\Proprietaire;
+use MyCollection\app\dto\ResponsePropsObject;
 use MyCollection\app\services\CategorieServices;
 use MyCollection\app\services\MediaServices;
 use MyCollection\app\services\ObjetServices;
 use MyCollection\app\services\ProprietaireService;
 use MyCollection\app\services\Services;
 use MyCollection\app\utils\AppUtils;
+use MyCollection\app\utils\AuthUtils;
 use MyCollection\app\utils\BddUtils;
 use MyCollection\app\utils\lang\ArrayUtils;
 use MyCollection\app\utils\ValidatorsUtils;
@@ -44,6 +49,16 @@ class ObjetController extends AbstractController implements IObjetController
     /** @noinspection PhpUnused */
     public function getAllByUserId(int $userId): ResponseObject
     {
+
+
+        $currentUserId = AuthUtils::verifyTokenByCookieAndReturnProp('userId');
+        if (empty($currentUserId) || intval($currentUserId) !== $userId) {
+            $retObj = new ResponsePropsObject();
+            $retObj->setResult(false)
+                ->setErrorMsg('Vous n\'êtes pas autorisé à accéder aux objets de cet utilisateur.')
+                ->setErrCode(403);
+            return ResponseObject::ResultsObjectToJson($retObj);
+        }
 
         $objets = $this->objetServices->getObjetsByIdProprietaire($userId);
 
@@ -214,51 +229,10 @@ class ObjetController extends AbstractController implements IObjetController
 
     }
 
-    public function deleteObjet(): ResponseObject
-    {
-        $retArray = ResponseUtils::getDefaultResponseArray(false);
-        $datas = $this->getRequest()->getBodyJson();
-
-        try {
-            BddUtils::initTransaction();
-
-            if (!ValidatorsUtils::allExistsInArray(['idObjet'], $datas)) {
-                throw new \Exception('Le champ idObjet est obligatoire.');
-            }
-            if (!ValidatorsUtils::isValidInt($datas['idObjet'], 1)) {
-                throw new \Exception('L\'id de l\'objet est obligatoire.');
-            }
-
-            $idObjet = intval($datas['idObjet']);
-            $objetExisting = $this->objetServices->getObjetById($idObjet);
-            if (empty($objetExisting)) {
-                throw new \Exception('L\'objet avec l\'id ' . $idObjet . ' n\'existe pas.');
-            }
-
-            if (!$this->objetServices->deleteObjet($objetExisting->getIdObjet())) {
-                throw new \Exception('Erreur lors de la suppression de l\'objet.');
-            }
-
-            $retArray['result'] = true;
-            $retArray['content']['data'] = true;
-            $retArray['content']['type'] = 'bool';
-            BddUtils::commitTransaction();
-
-            return ResponseObject::ResultsObjectToJson($retArray);
-
-        } catch (\Exception $exception) {
-            BddUtils::rollbackTransaction();
-            $retArray['content']['message'] = 'Erreur lors de la suppression de l\'objet : ' . $exception->getMessage();
-            return ResponseObject::ResultsObjectToJson($retArray);
-
-        }
-
-    }
-
     public function getObjetById(int $objetId): ResponseObject
     {
 
-        // Todo vérifier userid (session ?)
+        $currentUserId = AuthUtils::verifyTokenByCookieAndReturnProp('userId', true);
 
         $retArray = ResponseUtils::getDefaultResponseArray();
 
@@ -477,8 +451,51 @@ class ObjetController extends AbstractController implements IObjetController
         }
     }
 
+    public function deleteObjet(): ResponseObject
+    {
+        $retArray = ResponseUtils::getDefaultResponseArray(false);
+        $datas = $this->getRequest()->getBodyJson();
+
+        try {
+            BddUtils::initTransaction();
+
+            if (!ValidatorsUtils::allExistsInArray(['idObjet'], $datas)) {
+                throw new \Exception('Le champ idObjet est obligatoire.');
+            }
+            if (!ValidatorsUtils::isValidInt($datas['idObjet'], 1)) {
+                throw new \Exception('L\'id de l\'objet est obligatoire.');
+            }
+
+            $idObjet = intval($datas['idObjet']);
+            $objetExisting = $this->objetServices->getObjetById($idObjet);
+            if (empty($objetExisting)) {
+                throw new \Exception('L\'objet avec l\'id ' . $idObjet . ' n\'existe pas.');
+            }
+
+            if (!$this->objetServices->deleteObjet($objetExisting->getIdObjet())) {
+                throw new \Exception('Erreur lors de la suppression de l\'objet.');
+            }
+
+            $retArray['result'] = true;
+            $retArray['content']['data'] = true;
+            $retArray['content']['type'] = 'bool';
+            BddUtils::commitTransaction();
+
+            return ResponseObject::ResultsObjectToJson($retArray);
+
+        } catch (\Exception $exception) {
+            BddUtils::rollbackTransaction();
+            $retArray['content']['message'] = 'Erreur lors de la suppression de l\'objet : ' . $exception->getMessage();
+            return ResponseObject::ResultsObjectToJson($retArray);
+
+        }
+
+    }
+
     public function addNewObjet(): ResponseObject
     {
+        AuthUtils::verifyTokenByCookieAndReturnProp('userId', true);
+
 
         $retArray = ResponseUtils::getDefaultResponseArray(false);
         $datas = json_decode($_POST['data'], JSON_OBJECT_AS_ARRAY);

@@ -4,6 +4,7 @@ namespace MyCollection\app\services;
 
 use MyCollection\app\dto\entities\EtrePossede;
 use MyCollection\app\dto\entities\Proprietaire;
+use MyCollection\app\services\base\LoginTokenTrait;
 use MyCollection\app\services\base\ProprietaireTrait;
 use MyCollection\app\utils\BddUtils;
 
@@ -11,6 +12,7 @@ class ProprietaireService extends AbstractServices
 {
 
     use ProprietaireTrait;
+    use LoginTokenTrait;
 
     public function __construct()
     {
@@ -35,5 +37,17 @@ class ProprietaireService extends AbstractServices
 
         );
     }
+
+    public function getProprietaireByName(string $propName) : ?Proprietaire
+    {
+        return BddUtils::executeOrderAndGetOne(
+            "SELECT * FROM " . Proprietaire::TABLE . " WHERE Nom = :nom",
+            ['nom' => $propName],
+            Proprietaire::class
+        );
+
+    }
+
+
 
 }

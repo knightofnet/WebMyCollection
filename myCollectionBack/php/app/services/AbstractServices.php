@@ -29,7 +29,7 @@ class AbstractServices
     public static function initConnexion(): void
     {
         if (!isset(self::$connection)) {
-            self::$connection = BddUtils::initConnection(SERVER_ROOT . '/secret/dbb_DEV.ini');
+            self::$connection = BddUtils::initConnection(SERVER_ROOT . SITE_SECRET_FILE);
         }
     }
 

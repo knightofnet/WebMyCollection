@@ -2,6 +2,7 @@
   "/api": {
     "target": "http://localhost/myCollection",
     "secure": false,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "logLevel": "debug"
   }
 }

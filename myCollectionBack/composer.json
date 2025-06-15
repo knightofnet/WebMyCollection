@@ -15,7 +15,9 @@
     "ext-json": "*",
     "wolfaryx/miniphprest" : "dev-main",
     "ext-pdo": "*",
-    "phpmailer/phpmailer": "^6.6"
+    "phpmailer/phpmailer": "^6.6",
+    "firebase/php-jwt": "*",
+    "paragonie/sodium_compat" : "*"
   },
   "autoload": {
     "psr-4": {"MyCollection\\": "php/"}

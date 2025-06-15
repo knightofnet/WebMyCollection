@@ -1,0 +1,28 @@
+.page-login {
+  background-color: darkslateblue;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+.page-login .card {
+  width: 60%;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  border: none;
+}
+.page-login .rounded-t-5 {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+@media (min-width: 992px) {
+  .page-login .rounded-tr-lg-0 {
+    border-top-right-radius: 0;
+    border-color: red;
+  }
+  .page-login .rounded-bl-lg-5 {
+    border-bottom-left-radius: 0.5rem;
+    border-color: red;
+  }
+}
+
+/*# sourceMappingURL=page-login.component.css.map */
