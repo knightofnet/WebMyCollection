@@ -44,3 +44,4 @@ Thumbs.db
 /myCollectionBack/siteConf.php
 composer.phar
 /myCollectionBack/secret/dbb_DEV.ini
+/myCollectionFront/public/uploaded
