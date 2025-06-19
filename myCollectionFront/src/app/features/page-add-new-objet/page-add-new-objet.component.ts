@@ -120,6 +120,7 @@ export class PageAddNewObjetComponent implements OnInit {
             categories: objet.Categorie?.map(cat => cat.Id_Categorie),
             keywords: objet.Keyword?.map(cat => cat.Id_Categorie),
             owners: objet.Proprietaire.map(owner => owner.Id_Proprietaire),
+            imageUrl : ''
             //imageMode: objet ? 'url' : 'upload',
             //imageUrl: objet.imageUrl || '',
             //imageFile: null
@@ -293,9 +294,63 @@ export class PageAddNewObjetComponent implements OnInit {
 
   }
 
+  addMediaForCurrentObjet() {
+
+    if (
+      this.objectForm.value.imageMode
+      && (
+        this.objectForm.value.imageMode === 'url' &&  this.objectForm.controls.imageUrl.invalid
+        || this.objectForm.value.imageMode === 'upload' && !this.objectForm.value.imageFile
+      )) {
+
+      console.error('Invalid form data. Please check the image mode and file/url input.');
+      return;
+    }
+
+    const payload = {
+      imageMode: this.objectForm.value.imageMode!,
+      imageFile: this.objectForm.value.imageMode === 'upload' ? this.objectForm.value.imageFile! : null,
+      imageUrl: this.objectForm.value.imageMode === 'url' ? this.objectForm.value.imageUrl! : '',
+      idObjet: this.currentObjetEdited ? this.currentObjetEdited.Id_Objet : null
+    };
+
+    console.log('Submitting objet with payload:', payload);
+
+    this.objetServices.addMediaForObjet(payload).subscribe({
+      next : (response) => {
+        if (response.result) {
+          console.log('Media added successfully:', response.content);
+
+          this.currentObjetEdited?.Media?.push(response.content.data);
+
+        }
+        else {
+          console.error('Failed to add media:', response.error);
+        }
+      }
+      , error: (error) => {
+        console.error('Error adding media:', error);
+      }
+    });
+
+  }
 
   removeMedia(idMedia: number) {
-
+      this.objetServices.deleteMediaForObjet(idMedia).subscribe({
+        next: (response) => {
+          if (response.result) {
+            console.log('Media removed successfully:', response.content);
+            if (this.currentObjetEdited) {
+              this.currentObjetEdited.Media = this.currentObjetEdited.Media?.filter(media => media.Id_Media !== idMedia);
+            }
+          } else {
+            console.error('Failed to remove media:', response.error);
+          }
+        },
+        error: (error) => {
+          console.error('Error removing media:', error);
+        }
+      });
   }
 
   onFileDragOver($event: DragEvent) {
@@ -349,4 +404,6 @@ export class PageAddNewObjetComponent implements OnInit {
       this.pendingUploads = [...this.pendingUploads]; // Trigger change detection
     }
   }
+
+
 }

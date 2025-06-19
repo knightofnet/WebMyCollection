@@ -13,4 +13,6 @@ interface IObjetController
     public function addNewObjet(): ResponseObject;
 
     public function updateObjet(): ResponseObject;
+
+    public function addMediaForObjet(): ResponseObject;
 }

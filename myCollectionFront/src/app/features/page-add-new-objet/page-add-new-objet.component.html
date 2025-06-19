@@ -94,6 +94,7 @@
           </div>
         </div>
 
+        <!-- Image ------------------------------------------------------->
         @if (currentObjetEdited) {
           <fieldset class="mt-4">
             <legend class="form-label mb-2">Images associées à l'objet</legend>
@@ -116,7 +117,6 @@
           </fieldset>
         }
 
-        <!-- Image ------------------------------------------------------->
         <fieldset class="mt-4">
           <legend class="form-label mb-2">Ajouter une image</legend>
 
@@ -159,10 +159,18 @@
               }
             </div>
 
-          } @else {
+          }  @else {
             <input type="url" placeholder="https://…"
                    class="form-control mt-2"
                    formControlName="imageUrl">
+          }
+
+          @if (currentObjetEdited) {
+            <button class="btn btn-success mt-2"
+                    type="button" (click)="addMediaForCurrentObjet()">
+              <!--fa-icon [icon]="faPlus" class="me-1"></fa-icon-->
+              Ajouter l'image
+            </button>
           }
 
         </fieldset>

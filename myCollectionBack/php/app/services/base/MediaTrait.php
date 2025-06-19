@@ -27,6 +27,11 @@ trait MediaTrait
         );
     }
 
+    /**
+     * @param int $idObjet
+     * @return Media[]
+     * @throws \Exception
+     */
     public function getMediaByIdObjet(int $idObjet): array
     {
         return BddUtils::executeOrderAndGetMany(

@@ -3,9 +3,6 @@
 namespace MyCollection\app\controllers;
 
 
-use Exception;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 use MiniPhpRest\core\AbstractController;
 use MiniPhpRest\core\ResponseObject;
 use MiniPhpRest\core\utils\ResponseUtils;
@@ -27,6 +24,7 @@ use MyCollection\app\utils\AppUtils;
 use MyCollection\app\utils\AuthUtils;
 use MyCollection\app\utils\BddUtils;
 use MyCollection\app\utils\lang\ArrayUtils;
+use MyCollection\app\utils\MediaUtils;
 use MyCollection\app\utils\ValidatorsUtils;
 
 class ObjetController extends AbstractController implements IObjetController
@@ -49,7 +47,6 @@ class ObjetController extends AbstractController implements IObjetController
     /** @noinspection PhpUnused */
     public function getAllByUserId(int $userId): ResponseObject
     {
-
 
         $currentUserId = AuthUtils::verifyTokenByCookieAndReturnProp('userId');
         if (empty($currentUserId) || intval($currentUserId) !== $userId) {
@@ -83,7 +80,7 @@ class ObjetController extends AbstractController implements IObjetController
     /**
      * @param $objet
      * @param $toFilterKey
-     * @return array
+     * @return array [Objet as array, filterKeys]
      * @throws \Exception
      */
     public function fillFullObjet($objet, $inputToFilterKey): array
@@ -226,6 +223,81 @@ class ObjetController extends AbstractController implements IObjetController
             $retArray['content']['message'] = 'Erreur lors de la mise à jour de l\'objet : ' . $exception->getMessage();
             return ResponseObject::ResultsObjectToJson($retArray);
         }
+
+    }
+
+    public function addMediaForObjet() : ResponseObject {
+
+        $userId = AuthUtils::verifyTokenByCookieAndReturnProp('userId');
+
+        $respObj = new ResponsePropsObject();
+
+        $datas = json_decode($_POST['data'], JSON_OBJECT_AS_ARRAY);
+        $filepathOnServer = null;
+
+        try {
+            BddUtils::initTransaction();
+
+            if (!ValidatorsUtils::allExistsInArray(['idObjet', 'imageMode'], $datas)) {
+                throw new \Exception('Les champs idObjet et imageMode sont obligatoires.');
+            }
+
+            if (!ValidatorsUtils::isValidInt($datas['idObjet'], 1)) {
+                throw new \Exception('L\'id de l\'objet est obligatoire.');
+            }
+
+            $idObjet = intval($datas['idObjet']);
+            $objetExisting = $this->objetServices->getObjetById($idObjet);
+            if (empty($objetExisting)) {
+                throw new \Exception('L\'objet avec l\'id ' . $idObjet . ' n\'existe pas.');
+            }
+            $objetFillFull = $this->fillFullObjet($objetExisting, [])[0];
+            if (!ArrayUtils::find(fn($prop) => $prop->getIdProprietaire() === intval($userId), $objetFillFull[Proprietaire::TABLE])) {
+                throw new \Exception('Vous n\'êtes pas le propriétaire de cet objet.');
+            }
+
+            $imageModeRaw = htmlspecialchars($datas['imageMode']);
+
+            // On prépare le média
+            $saveMediaObject = MediaUtils::addMedia($imageModeRaw,
+                $datas['imageUrl'] ?? null, 'file');
+
+            if (!$saveMediaObject->isImageSaved()) {
+                if ($saveMediaObject->getException()) {
+                    throw $saveMediaObject->getException();
+                }
+                throw new \Exception('Erreur lors de l\'ajout du média : le fichier n\'a pas été sauvegardé.');
+            }
+
+            $media = $saveMediaObject->getImage();
+            $media->setIdObjet($objetExisting->getIdObjet());
+
+            if (!$this->mediaServices->addMedia($media)) {
+                throw new \Exception('Erreur lors de l\'ajout du média à l\'objet.');
+            }
+
+
+
+            BddUtils::commitTransaction();
+            $respObj->setResult(true)
+                ->setData($media ? $media->toArray() : null)
+                ->setType('Media');
+
+
+        } catch (\Exception $exception) {
+            BddUtils::rollbackTransaction();
+
+            // Si un fichier a été uploadé, on le supprime
+            if ($filepathOnServer && file_exists($filepathOnServer)) {
+                unlink($filepathOnServer);
+            }
+
+            $respObj->setErrCode($exception->getCode())
+                ->setErrorMsg($exception->getMessage());
+
+        }
+
+        return ResponseObject::ResultsObjectToJson($respObj->toArray());
 
     }
 
@@ -408,8 +480,7 @@ class ObjetController extends AbstractController implements IObjetController
      * @return void
      * @throws \Exception
      */
-    public
-    function addOrLinkCategorie($dataCategorie, Objet $newObj): void
+    public function addOrLinkCategorie($dataCategorie, Objet $newObj): void
     {
 
         // verifions
@@ -489,6 +560,77 @@ class ObjetController extends AbstractController implements IObjetController
             return ResponseObject::ResultsObjectToJson($retArray);
 
         }
+
+    }
+
+    public function deleteMediaForObjet() : ResponseObject
+    {
+        /** @var int $userId */
+        $userId = intval(AuthUtils::verifyTokenByCookieAndReturnProp('userId', true) ?? "0");
+
+        $retObj = new ResponsePropsObject();
+        $datas = $this->getRequest()->getBodyJson();
+
+        try {
+            BddUtils::initTransaction();
+
+            if (!ValidatorsUtils::allExistsInArray(['idMedia'],   $datas)) {
+                throw new \Exception('Le champ idMedia est obligatoire.');
+            }
+            if (!ValidatorsUtils::isValidInt($datas['idMedia'], 1)) {
+                throw new \Exception('L\'id du média est obligatoire.');
+            }
+
+            $idMedia = intval($datas['idMedia']);
+            $mediaExisting = $this->mediaServices->getMediaById($idMedia);
+            if (empty($mediaExisting)) {
+                throw new \Exception('Le média avec l\'id ' . $idMedia . ' n\'existe pas.');
+            }
+
+            $objetExisting = $this->objetServices->getObjetById($mediaExisting->getIdObjet());
+            if (empty($objetExisting)) {
+                throw new \Exception('L\'objet associé au média n\'existe pas.');
+            }
+            $objetFillFull = $this->fillFullObjet($objetExisting, [])[0];
+            if (!ArrayUtils::find(fn($prop) => $prop->getIdProprietaire() === intval($userId), $objetFillFull[Proprietaire::TABLE])) {
+                throw new \Exception('Vous n\'êtes pas le propriétaire de cet objet.');
+            }
+
+            if (!$this->mediaServices->deleteMedia($mediaExisting->getIdMedia())) {
+                throw new \Exception('Erreur lors de la suppression du média.');
+            }
+
+            // Si le média était le principal, on en choisit un autre comme principal
+            if ($mediaExisting->isEstPrincipal()) {
+                $otherMedias = $objetFillFull[Media::TABLE];
+                if (!empty($otherMedias) && count($otherMedias) > 1) {
+                    $otherMedias[1]->setEstPrincipal(true);
+                    if (!$this->mediaServices->updateMedia($otherMedias[1])) {
+                        throw new \Exception('Erreur lors de la mise à jour du média principal.');
+                    }
+                }
+            }
+
+            // Si le média était un fichier sur le serveur, on le supprime
+            if ($mediaExisting->getType() === FormatCst::MediaTypeImage ) {
+                if (!empty($mediaExisting->getUriServeur()) && file_exists(SERVER_ROOT . '/' . $mediaExisting->getUriServeur())) {
+                    if (!unlink(SERVER_ROOT . '/' . $mediaExisting->getUriServeur())) {
+                        throw new \Exception('Erreur lors de la suppression du fichier sur le serveur.');
+                    }
+                }
+
+            }
+
+            BddUtils::commitTransaction();
+            $retObj->setResult(true)
+                ->setData(true)
+                ->setType('boolean');
+
+        } catch (\Exception $ex) {
+            BddUtils::rollbackTransaction();
+        }
+
+        return ResponseObject::ResultsObjectToJson($retObj->toArray());
 
     }
 

@@ -23,6 +23,7 @@ $routes = [
 
         // Objet
         '/api/v1/objet/addNewObjet' => 'ObjetController@addNewObjet',
+        '/api/v1/objet/addMediaForObjet' => 'ObjetController@addMediaForObjet',
 
     ],
     'PUT' => [
@@ -31,14 +32,14 @@ $routes = [
         // Objet
         '/api/v1/objet/updateObjet' => 'ObjetController@updateObjet',
 
-
-
-
     ],
     'DELETE' => [
 
         // Objet
         '/api/v1/objet/deleteObjet' => 'ObjetController@deleteObjet',
+
+        // Media
+        '/api/v1/objet/deleteMediaForObjet' => 'ObjetController@deleteMediaForObjet',
 
     ],
 ];

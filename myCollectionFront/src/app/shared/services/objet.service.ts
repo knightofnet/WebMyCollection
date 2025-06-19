@@ -6,6 +6,7 @@ import {Observable} from 'rxjs';
 import {ICategorie} from '../interfaces/i-categorie';
 import {IParamForCreateOrUpdateObjet} from '../interfaces/side/i-param-for-create-or-update-objet';
 import {ApiService} from '../../core/services/ApiService';
+import {IMedia} from '../interfaces/i-media';
 
 
 
@@ -14,6 +15,22 @@ import {ApiService} from '../../core/services/ApiService';
   providedIn: 'root'
 })
 export class ObjetService {
+  addMediaForObjet(payload: { imageMode: string ; imageFile: File | null ; imageUrl: string | null ; idObjet: number | null; }): Observable<IGenResponse<IMedia>> {
+
+    const formData: FormData = new FormData();
+
+    if (payload.imageFile && payload.imageMode === 'upload') {
+      formData.append("file", payload.imageFile, payload.imageFile.name);
+    }
+
+    formData.append("data", JSON.stringify({
+      imageMode: payload.imageMode,
+      imageUrl: payload.imageUrl,
+      idObjet: payload.idObjet
+    }));
+
+    return this.apiService.post<IGenResponse<IMedia>>('/api/v1/objet/addMediaForObjet', formData);
+  }
 
   constructor(private apiService: ApiService) {
   }
@@ -57,5 +74,14 @@ export class ObjetService {
       idObjet: idObjet,
     }
     return this.apiService.delete<IGenResponse<boolean>>('/api/v1/objet/deleteObjet',data);
+  }
+
+  deleteMediaForObjet(idMedia: number) : Observable<IGenResponse<boolean>> {
+
+    const data = {
+      idMedia: idMedia,
+    }
+    return this.apiService.delete<IGenResponse<boolean>>('/api/v1/objet/deleteMediaForObjet', data);
+
   }
 }
