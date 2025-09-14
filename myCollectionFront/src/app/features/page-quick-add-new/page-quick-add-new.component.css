@@ -1,0 +1,22 @@
+.preview {
+  width: 100%;
+}
+
+.panels #zone-photos {
+  background: #b6b6fa;
+  color: #272727;
+}
+.panels #zone-nom {
+  background: #a259f7;
+  color: #fff;
+}
+.panels #zone-details {
+  background: #23272a;
+  color: #fff;
+}
+.panels #zone-final {
+  background: #2ec4b6;
+  color: #fff;
+}
+
+/*# sourceMappingURL=page-quick-add-new.component.css.map */

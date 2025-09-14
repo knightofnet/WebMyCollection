@@ -74,22 +74,36 @@ class AuthController extends AbstractController
                 throw new \Exception("Invalid pin for Proprietaire '$propName'", 401);
             }
 
-            // création token unique
-            $token = AuthUtils::generateNewToken();
-            $expires_at = new DateTime('+15 minutes');
 
-            $this->proprietaireService->addLoginToken($proprietaire->getIdProprietaire(), $token, $expires_at);
+            $isFullAuth = false;
+
+            if ($isFullAuth) {
+
+                // création token unique
+                $token = AuthUtils::generateNewToken();
+                $expires_at = new DateTime('+15 minutes');
+
+                $this->proprietaireService->addLoginToken($proprietaire->getIdProprietaire(), $token, $expires_at);
 
 
-            $subject = 'MyCollection - Nouvelle connexion';
-            $body = 'Bonjour ' . $proprietaire->getNom() . ',<br><br>' .
-                'Une nouvelle connexion a été détectée sur votre compte Knightofnet:MyCollection !' . "<br><br>" .
-                'Cliquez sur le lien ci-dessous pour vous connecter : ' . "<br>" .
-                '<a href="' . SiteIniFile::instance()->getValue('site', 'url') . 'login/' . $token . '">Poursuivre la connexion</a>' . "<br>" .
-                'Si ce n\'est pas vous, ignorez ce message.' . "<br><br>" .
-                'Aryx' . "<br>";
+                $subject = 'MyCollection - Nouvelle connexion';
+                $body = 'Bonjour ' . $proprietaire->getNom() . ',<br><br>' .
+                    'Une nouvelle connexion a été détectée sur votre compte Knightofnet:MyCollection !' . "<br><br>" .
+                    'Cliquez sur le lien ci-dessous pour vous connecter : ' . "<br>" .
+                    '<a href="' . SiteIniFile::instance()->getValue('site', 'url') . 'login/' . $token . '">Poursuivre la connexion</a>' . "<br>" .
+                    'Si ce n\'est pas vous, ignorez ce message.' . "<br><br>" .
+                    'Aryx' . "<br>";
 
-            MailUtils::sendMail($proprietaire->getEmail(), $subject, $body);
+                MailUtils::sendMail($proprietaire->getEmail(), $subject, $body);
+            } else {
+                // connexion directe
+                $payload = [
+                    'userId' => $proprietaire->getIdProprietaire(),
+                    'exp' => time() + (30 * 24 * 60 * 60)
+                ];
+                $jwt = AuthUtils::encodeJwtPayload($payload);
+                AuthUtils::setAuthCookie($jwt);
+            }
 
             $retObj->setResult(true)
                 ->setData(true)

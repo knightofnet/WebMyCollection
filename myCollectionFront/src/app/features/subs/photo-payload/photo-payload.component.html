@@ -1,0 +1,48 @@
+<div class="m-1 d-flex justify-content-between">
+  @for (t of tabs; track t.id) {
+    <button class="btn"
+            [class.btn-success]="mode!==t.id"
+            [class.btn-outline-success]="mode===t.id"
+            (click)="switchMode(t.id)"
+    >
+      {{ t.label }}
+    </button>
+  }
+</div>
+
+
+<div class="modes-photos">
+  @if (mode === 'upload') {
+
+    <input #fileInput type="file" accept="image/*" capture="environment" (change)="onFileChange($event)">
+
+
+
+    @if (error) {
+      <div class="error">{{ error }}</div>
+    }
+  } @else {
+    <div class="row">
+      <input type="url" [(ngModel)]="imageUrl" placeholder="https://exemple.com/image.jpg" style="flex:1 1 320px;">
+      <button (click)="loadFromUrl()">Charger</button>
+    </div>
+    <small>Astuce : le serveur distant doit autoriser CORS, sinon le chargement peut échouer.</small>
+
+
+    @if (error) {
+      <div class="error">{{ error }}</div>
+    }
+  }
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
