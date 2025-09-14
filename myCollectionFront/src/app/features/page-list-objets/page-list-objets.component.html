@@ -1,6 +1,6 @@
 <div class="main-div container-fluid">
 
-  <section class="py-5 text-center container">
+  <section class="py-5 text-center">
     <div class="row py-lg-5">
       <div class="col-lg-6 col-md-8 mx-auto">
         <h1 class="fw-light">Ma collection</h1>
@@ -83,6 +83,17 @@
 
 
     </div>
+
+  </div>
+
+  <div class="position-fixed bottom-0 end-0">
+    <!-- Quick button to add a new objet -->
+    <button type="button" class="btn btn-primary m-3 p-3 rounded-circle"
+            [routerLink]="['/quickAddNew']"
+            style="box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
+      <i class="fa-solid fa-plus"></i>
+    </button>
+
 
   </div>
 

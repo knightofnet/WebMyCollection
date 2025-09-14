@@ -1,0 +1,15 @@
+meta {
+  name: PostCsvFile
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost/myCollection/api/v1/objet/importCsv
+  body: file
+  auth: inherit
+}
+
+body:file {
+  file: @file(Z:\Download\myCollectionCsv.csv) @contentType(text/csv; charset=utf-8)
+}

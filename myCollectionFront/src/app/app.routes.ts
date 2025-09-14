@@ -3,6 +3,7 @@ import {PageListObjetsComponent} from './features/page-list-objets/page-list-obj
 import {PageAddNewObjetComponent} from './features/page-add-new-objet/page-add-new-objet.component';
 import {PageLoginComponent} from './features/pages-login/page-login/page-login.component';
 import {connectedGuard} from './core/guard/connected.guard';
+import {PageQuickAddNewComponent} from './features/page-quick-add-new/page-quick-add-new.component';
 
 export const routes: Routes = [
   {
@@ -13,6 +14,11 @@ export const routes: Routes = [
   {
     path : 'addNew',
     component : PageAddNewObjetComponent,
+    canActivate: [connectedGuard],
+  },
+  {
+    path : 'quickAddNew',
+    component : PageQuickAddNewComponent,
     canActivate: [connectedGuard],
   },
   {

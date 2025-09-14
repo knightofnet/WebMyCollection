@@ -1,0 +1,8 @@
+- Angular 19.1
+- Utilise @if @for au lieu de *ngIf et *ngFor
+- Utilise des composants standalone
+- Utilise bootstrap 5.3 pour le style
+- Utilise RxJS pour la gestion des flux de données
+- Utilise les signaux (signals) pour la gestion de l'état, et pour output / input
+- Utilise le routeur Angular pour la navigation
+- Utilise les bonnes pratiques Angular

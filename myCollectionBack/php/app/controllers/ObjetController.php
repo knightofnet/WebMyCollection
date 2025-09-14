@@ -6,6 +6,7 @@ namespace MyCollection\app\controllers;
 use MiniPhpRest\core\AbstractController;
 use MiniPhpRest\core\ResponseObject;
 use MiniPhpRest\core\utils\ResponseUtils;
+use MyCollection\app\business\importobjetsfromcsv\ImportObjetFromCsvWorker;
 use MyCollection\app\cst\FormatCst;
 use MyCollection\app\cst\TypeCategorieCst;
 use MyCollection\app\dto\entities\AvoirCategorie;
@@ -301,6 +302,70 @@ class ObjetController extends AbstractController implements IObjetController
 
     }
 
+    public function importFromCsv() : ResponseObject {
+
+        // AuthUtils::verifyTokenByCookieAndReturnProp('userId', true);
+
+
+        $retObj = new ResponsePropsObject();
+
+        //$datas = json_decode($_POST['data'], JSON_OBJECT_AS_ARRAY);
+        $filepathOnServer = null;
+
+        global $siteConf;
+
+        $dirRelOnServer = $siteConf->getValue('upload', 'folder');
+
+        try {
+            BddUtils::initTransaction();
+
+            /*
+             * Partie 1 - Upload du fichier CSV
+             */
+
+            if (!ValidatorsUtils::existsInArray('file', $_FILES)) {
+                throw new \Exception('Le fichier est obligatoire.');
+            }
+
+            $file = $_FILES['file'];
+            if (!is_uploaded_file($file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) {
+                throw new \Exception('Le fichier n\'a pas été uploadé correctement.');
+            }
+            if (!in_array($file['type'], ['text/csv', 'application/vnd.ms-excel'], true)) {
+                throw new \Exception('Le type de fichier n\'est pas autorisé. Seuls les fichiers CSV sont acceptés.');
+            }
+
+            $randomFileName = uniqid('importCsv_', true) . '.csv';
+
+            $filePathOnServer = SERVER_ROOT . '/' . $dirRelOnServer . '/' . $randomFileName;
+            if (!move_uploaded_file($file['tmp_name'], $filePathOnServer)) {
+                throw new \Exception('Erreur lors de l\'enregistrement du fichier.');
+            }
+
+            // Upload réussi
+
+            /*
+             * Partie 2 - Lecture du fichier CSV et ajout des objets
+             */
+            $importWorker = new ImportObjetFromCsvWorker($filePathOnServer);
+            $importResult = $importWorker->parseFile();
+
+
+
+
+            BddUtils::commitTransaction();
+
+        } catch (\Exception $ex) {
+            BddUtils::rollbackTransaction();
+
+            $retObj->setErrCode($ex->getCode())
+                ->setErrorMsg('Erreur lors de l\'initialisation de la transaction : ' . $ex->getMessage());
+            return ResponseObject::ResultsObjectToJson($retObj->toArray(), 500);
+
+        }
+
+    }
+
     public function getObjetById(int $objetId): ResponseObject
     {
 
@@ -423,7 +488,7 @@ class ObjetController extends AbstractController implements IObjetController
      * @param $dataCategorie
      * @return void
      */
-    public function validateDatasCategorie(array &$dataCategorie): void
+    private function validateDatasCategorie(array &$dataCategorie): void
     {
         ValidatorsUtils::allExistsInArray(['Id_Categorie', 'Nom'], $dataCategorie, true,
             'Chaque catégorie doit contenir les champs Id_Categorie et Nom.');
@@ -480,7 +545,7 @@ class ObjetController extends AbstractController implements IObjetController
      * @return void
      * @throws \Exception
      */
-    public function addOrLinkCategorie($dataCategorie, Objet $newObj): void
+    private function addOrLinkCategorie($dataCategorie, Objet $newObj): void
     {
 
         // verifions
