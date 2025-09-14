@@ -7,12 +7,11 @@
         <!-- Contenu à remplir plus tard -->
 
 
-        <app-photo-payload (photoSelected)="onPhotoSelected($event)" ></app-photo-payload>
+        <app-photo-payload (photoSelected)="onPhotoSelected($event)"></app-photo-payload>
 
 
       </div>
     }
-
     @case (1) {
       <div class="panel vh-100 d-flex flex-column justify-content-center align-items-center" id="zone-preview-photos">
         <h2>Aperçu de la photo</h2>
@@ -30,8 +29,7 @@
 
       </div>
     }
-
-    @case(2) {
+    @case (2) {
       <!-- Zone 2 : Nom de l'objet -->
       <div class="panel vh-100 flex-grow-1 d-flex flex-column justify-content-center align-items-center" id="zone-nom"
            hidden>
@@ -39,23 +37,61 @@
 
         <div class="mb-1">
 
-          <input id="name" type="text" class="form-control"
-                 placeholder="ex. Batman #1" >
+          <input
+            #inputName
+            id="name" type="text"
+            class="form-control"
+            (keyup)="getNamesFromServer()"
+            placeholder="ex. Batman #1"
+            [matAutocomplete]="auto"
+          >
+
+          <mat-autocomplete #auto="matAutocomplete">
+            @for (street of filteredObjectNames | async; track street) {
+              <mat-option [value]="street">{{ street }}</mat-option>
+            }
+          </mat-autocomplete>
+
+        </div>
+
+        <div>
+          @for (obj of lastObjects; track $index) {
+            <button class="btn btn-outline-primary" (click)="addToInputName(lastObjects[$index])">
+              {{ obj }}
+            </button>
+          }
         </div>
 
       </div>
     }
-
-    @case(3) {
+    @case (3) {
       <!-- Zone 3 : Description, catégorie, mots-clés -->
-      <div class="panel vh-100 flex-grow-1 d-flex flex-column justify-content-center align-items-center" id="zone-details"
+      <div class="panel vh-100 flex-grow-1 d-flex flex-column justify-content-center align-items-center"
+           id="zone-details"
            hidden>
         <h2>3. Détails</h2>
         <!-- Contenu à remplir plus tard -->
+
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label for="description" class="form-label">Description</label>
+            <textarea id="description" rows="3" class="form-control"
+                      placeholder="Ajoutez quelques détails…"
+            ></textarea>
+          </div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label for="keywords" class="form-label">Mots-clés</label>
+
+
+          </div>
+
+        </div>
+
       </div>
     }
-
-    @case(4) {
+    @case (4) {
       <!-- Zone 4 : Résumé et confirmation -->
       <div class="panel vh-100 flex-grow-1 d-flex flex-column justify-content-center align-items-center" id="zone-final"
            hidden>
@@ -64,15 +100,6 @@
       </div>
     }
   }
-
-
-
-
-
-
-
-
-
 
   <!-- Footer navigation -->
   <div class="form-footer position-fixed bottom-0 start-0 w-100 p-3 d-flex justify-content-between align-items-center"

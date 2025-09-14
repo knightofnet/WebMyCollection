@@ -156,6 +156,7 @@ class BddUtils
                 $type = null;
                 if (is_array($valueA)) {
                     $value = $valueA[0];
+                    $type = $valueA[1];
                 }
 
                 $bindKey = ':' . $key;

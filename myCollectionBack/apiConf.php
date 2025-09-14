@@ -7,6 +7,8 @@ $routes = [
         // Objet
         '/api/v1/objet/getAll/{userId}' => 'ObjetController@getAllByUserId',
         '/api/v1/objet/getById/{objetId}' => 'ObjetController@getObjetById',
+        '/api/v1/objet/getNamesLike/{namePart}' => 'ObjetController@getObjetNamesLike',
+        '/api/v1/objet/getLastAddedObject/{nbLast}' => 'ObjetController@getLastAddedObject',
 
         // Proprietaire
         '/api/v1/proprietaire/getAll' => 'ProprietaireController@getAllProprietaires',
