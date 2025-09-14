@@ -302,6 +302,74 @@ class ObjetController extends AbstractController implements IObjetController
 
     }
 
+    public function getLastAddedObject(int $nbLast) : ResponseObject {
+        $currentUserId = AuthUtils::verifyTokenByCookieAndReturnProp('userId', true);
+
+        $respObj = new ResponsePropsObject();
+
+        try {
+
+            if ($nbLast < 0 || $nbLast > 50) {
+                throw new \Exception("Out of range");
+            }
+
+
+
+            $objets = $this->objetServices->getLastAddedObject($nbLast);
+            $objetsArray = AppUtils::toArrayIToArray($objets);
+            $toFilterKey = [];
+
+            foreach ($objetsArray as &$objet) {
+                list($objet, $toFilterKey) = $this->fillFullObjet($objet, $toFilterKey);
+
+            }
+
+            $respObj->setData($objetsArray)
+                ->setType('Objet[]')
+                ->setResult(true);
+
+            return ResponseObject::ResultsObjectToJson($respObj->toArray());
+
+
+
+        } catch (\Exception $ex) {
+
+
+            return ResponseObject::ResultsObjectToJson($respObj->toArray(), 500);
+        }
+    }
+
+    public function getObjetNamesLike(string $namePart) : ResponseObject {
+        $currentUserId = AuthUtils::verifyTokenByCookieAndReturnProp('userId', true);
+
+        $respObj = new ResponsePropsObject();
+
+        try {
+
+            $namePart = trim(htmlspecialchars(urldecode($namePart)));
+
+
+            $names = $this->objetServices->getObjetNamesLike($namePart);
+
+            $respObj->setData($names)
+                ->setType('String[]')
+                ->setResult(true);
+
+            return ResponseObject::ResultsObjectToJson($respObj->toArray());
+
+
+
+        } catch (\Exception $ex) {
+            $respObj->setErrCode($ex->getCode())
+                ->setErrorMsg('Erreur lors de la récupération des noms d\'objets : ' . $ex->getMessage());
+            return ResponseObject::ResultsObjectToJson($respObj->toArray(), 500);
+        }
+    }
+
+    /**
+     * TODO : finir cette méthode
+     * @return ResponseObject
+     */
     public function importFromCsv() : ResponseObject {
 
         // AuthUtils::verifyTokenByCookieAndReturnProp('userId', true);

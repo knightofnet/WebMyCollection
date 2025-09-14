@@ -54,7 +54,49 @@ class ObjetServices extends AbstractServices
         );
     }
 
+    /**
+     * @param string $namePart
+     * @return string[]
+     */
+    public function getObjetNamesLike(string $namePart) : array
+    {
+        return BddUtils::executeOrder(
+            self::getConnection(),
+            "SELECT DISTINCT Nom FROM " . Objet::TABLE . " WHERE Nom LIKE :namePart ORDER BY DateAjout",
+            ['namePart' => '%' . $namePart . '%'],
+            function (?\PDOStatement $stmt, ?\Exception $exception) {
+                if ($exception) {
+                    return [];
+                }
 
+                $retArray = [];
+                while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                    $objet = $row['Nom'] ?? null;
+                    if ($objet !== null) {
+                        $retArray[] = $objet;
+                    }
+                }
+
+                return $retArray;
+            }
+        );
+
+
+
+    }
+
+    /**
+     * @param int $nbLast
+     * @return Objet[]
+     */
+    public function getLastAddedObject(int $nbLast) : array
+    {
+        return BddUtils::executeOrderAndGetMany(
+            "SELECT * FROM " . Objet::TABLE . " ORDER BY DateAjout DESC LIMIT :nbLast",
+            ['nbLast' => [$nbLast, \PDO::PARAM_INT]],
+            Objet::class
+        );
+    }
 
 
 }

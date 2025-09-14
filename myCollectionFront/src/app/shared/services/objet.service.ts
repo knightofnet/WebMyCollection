@@ -84,4 +84,14 @@ export class ObjetService {
     return this.apiService.delete<IGenResponse<boolean>>('/api/v1/objet/deleteMediaForObjet', data);
 
   }
+
+  getNamesLike(value: string): Observable<IGenResponse<string[]>> {
+
+    return this.apiService.get<IGenResponse<string[]>>(`/api/v1/objet/getNamesLike/${encodeURIComponent(value)}`);
+
+  }
+
+  getLastAddedObject(lastNb: number) : Observable<IGenResponse<IObjet[]>> {
+    return this.apiService.get<IGenResponse<IObjet[]>>(`/api/v1/objet/getLastAddedObject/${lastNb}`);
+  }
 }
