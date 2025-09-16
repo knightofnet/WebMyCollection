@@ -109,18 +109,23 @@ class MediaUtils
             throw new \Exception('Le fichier n\'a pas été uploadé correctement.');
         }
 
-        if (!key_exists($file['type'], self::$authMimeTypes, true)) {
+        if (!key_exists($file['type'], self::$authMimeTypes)) {
             throw new \Exception('Le type de fichier n\'est pas autorisé. Types autorisés : ' . implode(', ', array_keys(self::$authMimeTypes)));
         }
 
-        $filePath = SERVER_ROOT . '/' . $uploadFolder . '/' . $file['name'];
+        $imageType = self::$authMimeTypes[$file['type']]['ext'] ?? null;
+        if ($imageType === null) {
+            throw new \Exception('Le type de l\'image n\'est pas autorisé.');
+        }
+        $relativePath = self::getUniqueFileFullpath($uploadFolder, ltrim($imageType, '.'));
+        $filePath = SERVER_ROOT . '/' . $relativePath;
         if (!move_uploaded_file($file['tmp_name'], $filePath)) {
             throw new \Exception('Erreur lors de l\'enregistrement du fichier.');
         }
 
         $media = new Media();
         $media->setType(FormatCst::MediaTypeImage);
-        $media->setUriServeur($uploadFolder . '/' . $file['name']);
+        $media->setUriServeur($relativePath);
         $media->setEstPrincipal(false);
 
         return $media;
@@ -206,12 +211,22 @@ class MediaUtils
      */
     public static function fileSaveContent(string $serveurUploadFolder, string $imageType, $imageContent): array
     {
-        $relativePath = $serveurUploadFolder . '/' . uniqid('image_', true) . '.' . $imageType;
+        $relativePath = self::getUniqueFileFullpath($serveurUploadFolder, $imageType);
         $serveurImagePath = SERVER_ROOT . '/' . $relativePath;
         if (file_put_contents($serveurImagePath, $imageContent) === false) {
             throw new \Exception('Erreur lors de l\'enregistrement de l\'image.');
         }
         return array($relativePath, $serveurImagePath);
+    }
+
+    /**
+     * @param string $serveurUploadFolder
+     * @param string $imageType
+     * @return string
+     */
+    public static function getUniqueFileFullpath(string $serveurUploadFolder, string $imageType): string
+    {
+        return $serveurUploadFolder . '/' . uniqid('image_', true) . '.' . $imageType;
     }
 
 }
