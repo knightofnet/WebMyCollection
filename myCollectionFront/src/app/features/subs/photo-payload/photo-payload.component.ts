@@ -1,6 +1,6 @@
 import {Component, ElementRef, OnDestroy, output, viewChild} from '@angular/core';
 import {FormsModule} from '@angular/forms';
-import {PhotoSource} from '../../../shared/interfaces/subs/i-photo-payload';
+import {IPhotoPayload, PhotoSource} from '../../../shared/interfaces/subs/i-photo-payload';
 import {ImageStoreService} from '../../../shared/services/image-store.service';
 
 
@@ -15,7 +15,7 @@ export class PhotoPayloadComponent implements OnDestroy {
 
   //@Output() photoSelected = new EventEmitter<IPhotoPayload>();
 
-  photoSelected = output<boolean>();
+  photoSelected = output<IPhotoPayload>();
 
   videoRef = viewChild.required<ElementRef<HTMLVideoElement>>('video');
   canvasRef = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
@@ -69,7 +69,14 @@ export class PhotoPayloadComponent implements OnDestroy {
     console.log("processed");
     await this.imageStoreService.setBlob(processed);
 
-    this.photoSelected.emit(true);
+    this.photoSelected.emit(
+      {
+        source: 'upload',
+        imgName : file.name,
+        url : null,
+        mimeType : file.type
+      }
+    );
 
     //await this.processBlob(file, file.name || 'photo-upload.jpg', 'upload');
     //input.value = '';

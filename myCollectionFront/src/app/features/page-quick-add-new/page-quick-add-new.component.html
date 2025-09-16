@@ -1,74 +1,69 @@
 <div class="panels form-container overflow-hidden">
   <!-- Zone 1 : Photos -->
-  @switch (currentZone()) {
-    @case (0) {
-      <div class="panel vh-100 d-flex flex-column justify-content-center align-items-center" id="zone-photos">
-        <h2>1. Photos</h2>
-        <!-- Contenu à remplir plus tard -->
 
+  @if (currentZone() === 0) {
+    <div class="panel vh-100 d-flex flex-column justify-content-center align-items-center" id="zone-photos">
+      <h2>1. Photos</h2>
 
-        <app-photo-payload (photoSelected)="onPhotoSelected($event)"></app-photo-payload>
+      <app-photo-payload (photoSelected)="onPhotoSelected($event)"></app-photo-payload>
 
+    </div>
+  } @else if (currentZone() === 1) {
+    <div class="panel vh-100 d-flex flex-column justify-content-center align-items-center" id="zone-preview-photos">
+      <h2>Aperçu de la photo</h2>
+      <!-- Contenu à remplir plus tard -->
 
-      </div>
-    }
-    @case (1) {
-      <div class="panel vh-100 d-flex flex-column justify-content-center align-items-center" id="zone-preview-photos">
-        <h2>Aperçu de la photo</h2>
-        <!-- Contenu à remplir plus tard -->
+      @if (photoSelected()) {
+        <img class="preview" [src]="photoSelected()" alt="Prévisualisation">
+      } @else {
 
-        @if (photoSelected()) {
-          <img class="preview" [src]="photoSelected()" alt="Prévisualisation">
-        } @else {
-
-          <div class="alert alert-info">
-            Aucune photo sélectionnée.
-          </div>
-        }
-
-
-      </div>
-    }
-    @case (2) {
-      <!-- Zone 2 : Nom de l'objet -->
-      <div class="panel vh-100 flex-grow-1 d-flex flex-column justify-content-center align-items-center" id="zone-nom"
-           hidden>
-        <h2>2. Nom de l'objet</h2>
-
-        <div class="mb-1">
-
-          <input
-            #inputName
-            id="name" type="text"
-            class="form-control"
-            (keyup)="getNamesFromServer()"
-            placeholder="ex. Batman #1"
-            [matAutocomplete]="auto"
-          >
-
-          <mat-autocomplete #auto="matAutocomplete">
-            @for (street of filteredObjectNames | async; track street) {
-              <mat-option [value]="street">{{ street }}</mat-option>
-            }
-          </mat-autocomplete>
-
+        <div class="alert alert-info">
+          Aucune photo sélectionnée.
         </div>
+      }
 
-        <div>
-          @for (obj of lastObjects; track $index) {
-            <button class="btn btn-outline-primary" (click)="addToInputName(lastObjects[$index])">
-              {{ obj }}
-            </button>
+
+    </div>
+  } @else if (currentZone() === 2) {
+    <!-- Zone 2 : Nom de l'objet -->
+    <div class="panel vh-100 flex-grow-1 d-flex flex-column justify-content-center align-items-center" id="zone-nom"
+         hidden>
+      <h2>2. Nom de l'objet</h2>
+
+      <div class="mb-1">
+
+        <input
+          #inputName
+          id="name" type="text"
+          class="form-control"
+          (keyup)="getNamesFromServer()"
+          placeholder="ex. Batman #1"
+          [matAutocomplete]="auto"
+          required>
+
+        <mat-autocomplete #auto="matAutocomplete">
+          @for (street of filteredObjectNames | async; track street) {
+            <mat-option [value]="street">{{ street }}</mat-option>
           }
-        </div>
+        </mat-autocomplete>
 
       </div>
-    }
-    @case (3) {
-      <!-- Zone 3 : Description, catégorie, mots-clés -->
-      <div class="panel vh-100 flex-grow-1 d-flex flex-column justify-content-center align-items-center"
-           id="zone-details"
-           hidden>
+
+      <div>
+        @for (obj of lastObjects; track $index) {
+          <button class="btn btn-outline-primary" (click)="addToInputName(lastObjects[$index])">
+            {{ obj }}
+          </button>
+        }
+      </div>
+
+    </div>
+  } @else if (currentZone() === 3) {
+    <!-- Zone 3 : Description, catégorie, mots-clés -->
+    <div class="panel vh-100 min-vh-100  flex-grow-1 d-flex flex-column justify-content-center align-items-center w-100"
+         id="zone-details"
+         hidden>
+      <div class="panel-content">
         <h2>3. Détails</h2>
         <!-- Contenu à remplir plus tard -->
 
@@ -83,23 +78,35 @@
         <div class="row g-3">
           <div class="col-md-4">
             <label for="keywords" class="form-label">Mots-clés</label>
-
+            <ng-select
+              [multiple]="true"
+              [placeholder]="'Ajouter des mots-clés'"
+              [items]="keywords"
+              bindValue="Id_Categorie"
+              bindLabel="Nom"
+              [addTag]="true"
+              (add)="addNewKeyword($event)"
+            >
+            </ng-select>
 
           </div>
 
         </div>
+      </div>
+    </div>
+  } @else if (currentZone() === 4) {
+    <!-- Zone 4 : Résumé et confirmation -->
+    <div class="panel vh-100 flex-grow-1 d-flex flex-column justify-content-center align-items-center" id="zone-final"
+         hidden>
+      <h2>4. Résumé et confirmation</h2>
 
-      </div>
-    }
-    @case (4) {
-      <!-- Zone 4 : Résumé et confirmation -->
-      <div class="panel vh-100 flex-grow-1 d-flex flex-column justify-content-center align-items-center" id="zone-final"
-           hidden>
-        <h2>4. Résumé et confirmation</h2>
-        <!-- Contenu à remplir plus tard -->
-      </div>
-    }
+      <p>Nom : {{ newObject.nom }}</p>
+
+
+      <button class="btn btn-primary" (click)="onSubmit()">Ajouter l'objet</button>
+    </div>
   }
+
 
   <!-- Footer navigation -->
   <div class="form-footer position-fixed bottom-0 start-0 w-100 p-3 d-flex justify-content-between align-items-center"

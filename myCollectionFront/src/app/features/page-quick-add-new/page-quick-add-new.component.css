@@ -22,5 +22,10 @@
 .panel .btn {
   background: white;
 }
+.panel .panel-content {
+  width: min(960px, 92vw);
+  margin-inline: auto;
+  padding: 2rem 1rem;
+}
 
 /*# sourceMappingURL=page-quick-add-new.component.css.map */

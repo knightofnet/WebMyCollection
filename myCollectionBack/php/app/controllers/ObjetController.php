@@ -462,7 +462,7 @@ class ObjetController extends AbstractController implements IObjetController
 
     }
 
-    private function validateDatasAddNewObjet(array $datas, array $skipPart = []): array
+    private function validateDatasAddNewObjet(array $datas, array $skipPart = [], array $defaultValue = []): array
     {
 
 
@@ -483,7 +483,11 @@ class ObjetController extends AbstractController implements IObjetController
         // Vérification des proprietaires
         $proprietaires = $datas['idProprietaire'];
         if (!is_array($proprietaires) || empty($proprietaires)) {
-            throw new \Exception('Le champ idProprietaire doit être un tableau non vide.');
+            if (key_exists('idProprietaire', $defaultValue)) {
+                $proprietaires = $defaultValue['idProprietaire'];
+            } else {
+                throw new \Exception('Le champ idProprietaire doit être un tableau non vide.');
+            }
         }
 
         $cleanedProprietaires = [];
@@ -769,7 +773,8 @@ class ObjetController extends AbstractController implements IObjetController
 
     public function addNewObjet(): ResponseObject
     {
-        AuthUtils::verifyTokenByCookieAndReturnProp('userId', true);
+        /** @var int $userId */
+        $userId = intval(AuthUtils::verifyTokenByCookieAndReturnProp('userId', true) ?? "0");
 
 
         $retArray = ResponseUtils::getDefaultResponseArray(false);
@@ -780,7 +785,9 @@ class ObjetController extends AbstractController implements IObjetController
             BddUtils::initTransaction();
 
 
-            $datas = $this->validateDatasAddNewObjet($datas);
+            $datas = $this->validateDatasAddNewObjet($datas, [], [
+                'idProprietaire' => [$userId]
+            ]);
 
             $nomRaw = $datas['nom'];
             $descriptionRaw = $datas['description'];
@@ -824,6 +831,12 @@ class ObjetController extends AbstractController implements IObjetController
 
             // On ajoute les medias
             if ($imageModeRaw === 'upload') {
+
+                $savedMedia = MediaUtils::addMedia($imageModeRaw,
+                    $datas['imageUrl'] ?? null, 'file');
+
+
+                /*
                 $mediaType = FormatCst::MediaTypeImage;
                 $file = $_FILES['file'];
                 if (empty($file) || !isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) {
@@ -846,8 +859,15 @@ class ObjetController extends AbstractController implements IObjetController
                 $media->setType($mediaType);
                 $media->setUriServeur($relativePath);
                 $media->setEstPrincipal(true); // On peut définir le premier média comme principal
-                if (!$this->mediaServices->addMedia($media)) {
-                    throw new \Exception('Erreur lors de l\'ajout du média à l\'objet.');
+                */
+
+                if ($savedMedia->isImageSaved()) {
+                    $media = $savedMedia->getImage();
+                    $media->setIdObjet($newObj->getIdObjet());
+                    $media->setEstPrincipal(true); // On peut définir le premier média comme principal
+                    if (!$this->mediaServices->addMedia($media)) {
+                        throw new \Exception('Erreur lors de l\'ajout du média à l\'objet.');
+                    }
                 }
 
             } elseif ($imageModeRaw === 'url') {

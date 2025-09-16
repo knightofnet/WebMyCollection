@@ -1,4 +1,14 @@
-import {Component, computed, ElementRef, OnInit, signal, viewChild} from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  OnInit,
+  Signal,
+  signal,
+  viewChild,
+  WritableSignal
+} from '@angular/core';
 import {PhotoPayloadComponent} from '../subs/photo-payload/photo-payload.component';
 import {ReactiveFormsModule} from '@angular/forms';
 import {ImageStoreService} from '../../shared/services/image-store.service';
@@ -7,6 +17,10 @@ import {MatAutocomplete, MatAutocompleteTrigger, MatOption} from '@angular/mater
 import {Observable, of, switchMap} from 'rxjs';
 import {ObjetService} from '../../shared/services/objet.service';
 import {NgSelectComponent} from '@ng-select/ng-select';
+import {ICategorie} from '../../shared/interfaces/i-categorie';
+import {CategorieService} from '../../shared/services/categorie.service';
+import {IParamForCreateOrUpdateObjet} from '../../shared/interfaces/side/i-param-for-create-or-update-objet';
+import {IPhotoPayload} from '../../shared/interfaces/subs/i-photo-payload';
 
 
 @Component({
@@ -25,19 +39,49 @@ import {NgSelectComponent} from '@ng-select/ng-select';
 })
 export class PageQuickAddNewComponent implements OnInit {
 
-  photoSelected: any;
+  photoSelected: Signal<string | null> = signal(null);
 
-  inputNameElement = viewChild.required<ElementRef<HTMLInputElement>>('inputName');
+  inputNameElement = viewChild<ElementRef<HTMLInputElement>>('inputName');
 
   currentZone = signal(0);
   zones: string[] = ['zone-photos', 'zone-preview-photos', 'zone-nom', 'zone-details', 'zone-final'];
+
   filteredObjectNames: Observable<string[]> = new Observable<string[]>();
   lastObjects: string[] = [];
+
+  keywords: ICategorie[] = [];
+  categories: ICategorie[] = [];
+
+  newObject: IParamForCreateOrUpdateObjet = {
+    nom: null,
+    description: null,
+    categories: [],
+    keywords: [],
+    imageMode: 'none',
+    imageFile: null,
+    imageUrl: null,
+    idProprietaire: []
+  }
+  private photoSelectedInfos: WritableSignal<IPhotoPayload | null> = signal(null);
 
 
   public constructor(
     private objetService: ObjetService,
+    private categorieServices: CategorieService,
     private imageStoreService: ImageStoreService) {
+
+
+    effect((ecr) => {
+
+
+      if (this.currentZone()) {
+        console.log("Zone", this.currentZone());
+        this.updateInfosOfView(this.currentZone())
+      }
+
+
+    });
+
 
   }
 
@@ -64,48 +108,69 @@ export class PageQuickAddNewComponent implements OnInit {
         }
       }
     })
+
+    this.categorieServices.getAllCategories(-1, -1).subscribe({
+      next: catResponse => {
+        if (catResponse.result) {
+          this.categories = catResponse.content.data.filter(cat => cat.Id_TyCategorie === 1);
+          this.keywords = catResponse.content.data.filter(cat => cat.Id_TyCategorie === 2);
+        } else {
+          console.error('Failed to fetch categories:', catResponse.error);
+        }
+      }
+    })
+
+
   }
 
   prevZone() {
     if (this.currentZone() > 0) {
       this.currentZone.update(v => v - 1);
-      this.scrollToZone();
+
+
     }
 
   }
 
-  nextZone() {
+  nextZone(isForce = false) {
+
+    console.log("NextZone")
+
     if (this.currentZone() < this.zones.length - 1) {
-      this.currentZone.update(v => v + 1);
-      this.scrollToZone();
+
+      const currZone = this.currentZone();
+      const isOkToGoNext: boolean = this.saveZoneInfos(currZone);
+
+      console.log("isOkToGoNext : ", isOkToGoNext);
+
+      if (isForce || isOkToGoNext) {
+
+        this.currentZone.update(v => v + 1);
+
+      }
     }
+
 
   }
 
-  scrollToZone() {
-    const zoneId = this.zones[this.currentZone()];
-    const el = document.getElementById(zoneId);
-    if (el) {
-      el.scrollIntoView({behavior: 'smooth'});
-    }
-  }
-
-  onPhotoSelected($event: boolean) {
+  onPhotoSelected($event: IPhotoPayload) {
 
     console.log('Photo selected in quick add new:', $event);
 
     if ($event) {
 
       this.photoSelected = computed(() => this.imageStoreService.objectUrl());
+      this.photoSelectedInfos.update(() => $event);
 
-      this.nextZone();
+      this.nextZone(true);
+
     }
 
 
   }
 
   getNamesFromServer() {
-    const input = this.inputNameElement().nativeElement;
+    const input = this.inputNameElement()!.nativeElement;
 
     const value = input.value;
 
@@ -127,7 +192,7 @@ export class PageQuickAddNewComponent implements OnInit {
 
   addToInputName(str: string) {
 
-    let inputElement = this.inputNameElement().nativeElement;
+    let inputElement = this.inputNameElement()!.nativeElement;
     console.log("selection", inputElement.selectionStart)
     console.log("selection-END", inputElement.selectionEnd);
 
@@ -156,5 +221,90 @@ export class PageQuickAddNewComponent implements OnInit {
 
     inputElement.focus();
     this.getNamesFromServer();
+  }
+
+
+  addNewKeyword($event: any): void {
+
+    console.log('Adding new keyword:', $event);
+
+
+    const label = $event.Nom.trim();
+    if (!label) return;
+
+    const isAlreadyExists = this.keywords.some(keyword => keyword.Nom.toLowerCase() === label.toLowerCase());
+    if (isAlreadyExists) {
+      console.debug('Keyword already exists:', label);
+      return;
+    }
+
+    const newKeyword: ICategorie = {Id_Categorie: -Date.now(), Nom: label, Id_TyCategorie: 2};
+    this.keywords.push(newKeyword);
+    this.keywords = [...this.keywords];
+
+    console.log('New keyword added:', $event, newKeyword);
+
+    //const current = this.objectForm.value.keywords ?? [];
+    //this.objectForm.patchValue({keywords: [...current, newKeyword]});
+  }
+
+  private saveZoneInfos(zoneId: number): boolean {
+    console.log("Save infos for zone", zoneId);
+    let isOkToGoNext: boolean = false;
+    switch (zoneId) {
+      case 0 :
+        isOkToGoNext = this.photoSelected() != null;
+        console.log("Photo selected?", isOkToGoNext, this.photoSelected());
+        break;
+      case 1 :
+        if (this.photoSelected() != null && this.photoSelectedInfos()) {
+          this.newObject.imageMode = 'upload';
+          const blob = this.imageStoreService.blob();
+          if (!blob) {
+            console.error('Blob not found', zoneId);
+          }
+          const mimeType = this.photoSelectedInfos()!.mimeType;
+          this.newObject.imageFile = new File([blob!], this.photoSelectedInfos()!.imgName!, {type: mimeType!});
+          isOkToGoNext = true;
+        }
+        break;
+      case 3 :
+        isOkToGoNext = true;
+        break;
+      case 2 :
+        const newName = this.inputNameElement()!.nativeElement.value;
+        if (newName.length > 2) {
+          this.newObject.nom = newName;
+          isOkToGoNext = true;
+        }
+
+        break;
+
+    }
+
+    return isOkToGoNext;
+  }
+
+  private updateInfosOfView(zoneIx: number) {
+    switch (zoneIx) {
+      case 2 :
+        if (this.inputNameElement() && this.newObject.nom) {
+          console.log("Set input name to ", this.newObject.nom);
+          this.inputNameElement()!.nativeElement.value = this.newObject.nom;
+        }
+    }
+  }
+
+  onSubmit() {
+
+
+    this.objetService.addNewObjet(this.newObject).subscribe({
+        next: (response) => {
+          if (response.result) {
+            console.log("OK", response.content.data);
+          }
+        }
+      }
+    );
   }
 }

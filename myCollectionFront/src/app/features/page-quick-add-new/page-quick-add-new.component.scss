@@ -30,8 +30,15 @@
 
 .panel {
 
+
   & .btn {
     background: white;
+  }
+
+  .panel-content {
+    width: min(960px, 92vw);  // limite confortable
+    margin-inline: auto;      // centre le contenu
+    padding: 2rem 1rem;       // respiration
   }
 }
 
