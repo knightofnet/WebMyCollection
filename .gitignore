@@ -45,3 +45,4 @@ Thumbs.db
 composer.phar
 /myCollectionBack/secret/dbb_DEV.ini
 /myCollectionFront/public/uploaded
+/myCollectionFront/buildAndUpload.ps1
