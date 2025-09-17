@@ -15,6 +15,7 @@ $routes = [
 
         // Categorie
         '/api/v1/categorie/getAll' => 'CategorieController@getAllCategories',
+        '/api/v1/categorie/getLasts/{nbLast}' => 'CategorieController@getLastCategories',
 
 
     ],

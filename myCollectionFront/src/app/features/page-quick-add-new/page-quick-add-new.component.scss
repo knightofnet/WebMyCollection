@@ -11,11 +11,24 @@
   #zone-nom {
     background: #a259f7; // Violet néon
     color: #fff;
+
+    & .btn {
+      background: white;
+    }
+
+    input {
+      width: 100vw;
+      max-width: 600px;
+    }
   }
 
   #zone-details {
     background: #23272a; // Gris anthracite
     color: #fff;
+
+    & .btn {
+      background: white;
+    }
   }
 
 
@@ -31,9 +44,7 @@
 .panel {
 
 
-  & .btn {
-    background: white;
-  }
+
 
   .panel-content {
     width: min(960px, 92vw);  // limite confortable

@@ -97,7 +97,7 @@ export class PhotoPayloadComponent implements OnDestroy {
         this.error = 'URL invalide.';
         return;
       }
-      const resp = await fetch(parsed.toString(), {mode: 'cors'});
+      const resp = await fetch(parsed.toString());
       if (!resp.ok) {
         this.error = `Échec du chargement (${resp.status}).`;
         return;

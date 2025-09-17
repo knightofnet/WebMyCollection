@@ -10,18 +10,25 @@
   background: #a259f7;
   color: #fff;
 }
+.panels #zone-nom .btn {
+  background: white;
+}
+.panels #zone-nom input {
+  width: 100vw;
+  max-width: 600px;
+}
 .panels #zone-details {
   background: #23272a;
   color: #fff;
+}
+.panels #zone-details .btn {
+  background: white;
 }
 .panels #zone-final {
   background: #2ec4b6;
   color: #fff;
 }
 
-.panel .btn {
-  background: white;
-}
 .panel .panel-content {
   width: min(960px, 92vw);
   margin-inline: auto;
