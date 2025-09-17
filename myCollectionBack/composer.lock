@@ -292,12 +292,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/knightofnet/miniPhpRest.git",
-                "reference": "981b939f86394c6ef78a58de32cafa81f2a2d51d"
+                "reference": "f2cf11e4bd8873245b1cdce3fe478d789bd3b383"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/knightofnet/miniPhpRest/zipball/981b939f86394c6ef78a58de32cafa81f2a2d51d",
-                "reference": "981b939f86394c6ef78a58de32cafa81f2a2d51d",
+                "url": "https://api.github.com/repos/knightofnet/miniPhpRest/zipball/f2cf11e4bd8873245b1cdce3fe478d789bd3b383",
+                "reference": "f2cf11e4bd8873245b1cdce3fe478d789bd3b383",
                 "shasum": ""
             },
             "require": {
@@ -327,7 +327,7 @@
                 "issues": "https://github.com/knightofnet/miniPhpRest/issues",
                 "source": "https://github.com/knightofnet/miniPhpRest/tree/main"
             },
-            "time": "2025-06-15T17:12:15+00:00"
+            "time": "2025-09-16T18:20:46+00:00"
         }
     ],
     "packages-dev": [],

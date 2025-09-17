@@ -219,7 +219,7 @@ class ArrayUtils
      */
     public static function addRange(array $subArray, array &$targetArray, bool $withSourceKeys = false)
     {
-        foreach ($subArray as $k=>$elt) {
+        foreach ($subArray as $k => $elt) {
             if ($withSourceKeys)
                 $targetArray[$k] = $elt;
             else
@@ -236,7 +236,7 @@ class ArrayUtils
      * @param \Closure|null $lambdaEquality Fonction de comparaison personnalisée. Par défaut, la comparaison est faite avec l'opérateur ==.
      * @return array
      */
-    public static function diff(array $arrayA, array $arrayB, \Closure $lambdaEquality=null): array
+    public static function diff(array $arrayA, array $arrayB, \Closure $lambdaEquality = null): array
     {
         $retArray = [];
 
@@ -262,6 +262,21 @@ class ArrayUtils
         return $retArray;
 
 
+    }
+
+    /**
+     * Applique une fonction de rappel à chaque élément d'un tableau et retourne un nouveau tableau contenant les résultats.
+     * @param array $array Le tableau d'entrée.
+     * @param \Closure $param La fonction de rappel à appliquer à chaque élément. Elle doit prendre un élément en paramètre et retourner la valeur transformée.
+     * @return array Un nouveau tableau contenant les résultats de l'application de la fonction de rappel à chaque élément du tableau d'entrée.
+     */
+    public static function map(array $array, \Closure $param): array
+    {
+        $retArray = [];
+        foreach ($array as $elt) {
+            $retArray[] = call_user_func($param, $elt);
+        }
+        return $retArray;
     }
 
 }

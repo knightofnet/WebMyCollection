@@ -16,4 +16,8 @@ export class CategorieService {
     // If page and size are -1, we fetch all categories
     return this.apiService.get<IGenResponse<ICategorie[]>>(`/api/v1/categorie/getAll?page=${page}&size=${size}&typeCategorie=${typeCategorie}`);
   }
+
+  getLastCategories(number: number) : Observable<IGenResponse<ICategorie[]>> {
+    return this.apiService.get<IGenResponse<ICategorie[]>>(`/api/v1/categorie/getLasts/${number}`);
+  }
 }

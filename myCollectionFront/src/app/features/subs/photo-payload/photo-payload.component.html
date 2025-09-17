@@ -14,7 +14,14 @@
 <div class="modes-photos">
   @if (mode === 'upload') {
 
-    <input #fileInput type="file" accept="image/*" capture="environment" (change)="onFileChange($event)">
+    <div class="row p-1">
+      <div class="input-group mb-3">
+        <input #fileInput class="form-control"  type="file" accept="image/*" capture="environment" (change)="onFileChange($event)">
+
+      </div>
+    </div>
+
+
 
 
 
@@ -22,9 +29,12 @@
       <div class="error">{{ error }}</div>
     }
   } @else {
-    <div class="row">
-      <input type="url" [(ngModel)]="imageUrl" placeholder="https://exemple.com/image.jpg" style="flex:1 1 320px;">
-      <button (click)="loadFromUrl()">Charger</button>
+    <div class="row p-1">
+      <div class="input-group mb-3">
+
+      <input class="form-control"  type="url" [(ngModel)]="imageUrl" placeholder="https://exemple.com/image.jpg" >
+      <button class="btn btn-primary" (click)="loadFromUrl()">Charger</button>
+      </div>
     </div>
     <small>Astuce : le serveur distant doit autoriser CORS, sinon le chargement peut échouer.</small>
 
